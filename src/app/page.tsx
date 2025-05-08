@@ -180,7 +180,7 @@ export default function Home() {
                     </button>
                     <button
                       type="button"
-                      className="rounded-full border border-solid m-2 ml-auto"
+                      className="m-2 ml-auto"
                       onClick={() => exportCode(currentSnapshot?.code)}
                     >
                       <div className="p-1 flex items-center">
