@@ -92,7 +92,7 @@ export default function Home() {
             }, 500)
         );
     }
-
+   /* TODO: add functionality to transition from dark to light mode */
     async function sendToQuickLaTeX(tex: string): Promise<string> {
         const params = new URLSearchParams({
             'formula': tex,
