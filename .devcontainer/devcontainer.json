@@ -6,9 +6,9 @@
     "customizations": {
         "vscode": {
             "extensions": [
-                "svelte.svelte-vscode",
                 "ms-vscode.vscode-typescript-next",
-                "esbenp.prettier-vscode"
+                "esbenp.prettier-vscode",
+                "dsznajder.es7-react-js-snippets"
             ]
         }
     },
