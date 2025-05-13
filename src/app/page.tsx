@@ -13,86 +13,59 @@ const IMPORTS = `
 
 type Snapshot = {
     code: string;
-    // image: ReactElement;
+    imageUrl: string;
 };
 
-function Preview({code, save, sendToQuickLaTeX, exportCode}: {
+// Function to export the code as a .tex file
+// This function creates a Blob from the code and triggers a download
+// adds the tikzpicture environment
+// function exportCode(code: string | undefined) {
+//     if (code) {
+//         const tikzCode = `\\begin{tikzpicture}\n${code}\n\\end{tikzpicture}`;
+//         const blob = new Blob([tikzCode], {type: 'text/plain'});
+//         const url = URL.createObjectURL(blob);
+//         const a = document.createElement('a');
+//         a.href = url;
+//         a.download = 'quick_tikz_code.tex';
+//         a.click();
+//         URL.revokeObjectURL(url);
+//     }
+// }
+
+// function to export the code to the clipboard
+function exportCode(code: string | undefined) {
+    if (code) {
+        const tikzCode = `\\begin{tikzpicture}\n${code}\n\\end{tikzpicture}`;
+        navigator.clipboard.writeText(tikzCode)
+            .then(() => {
+                console.log('Code copied to clipboard');
+            })
+            .catch(err => {
+                console.error('Failed to copy code: ', err);
+            });
+    }
+}
+
+function SnapshotView({snapshot}: {
+    snapshot: Snapshot
+    load: (snapshot: Snapshot) => void,
+}) {
+    return <div className="w-4 border-1">
+        <img src={snapshot.imageUrl} className="object-fit" />
+    </div>;
+}
+
+function Preview({code, save}: {
     code: string | undefined,
-    save: (_: string | undefined) => void,
-    sendToQuickLaTeX: (tex: string) => Promise<string>,
-    exportCode: (_: string | undefined) => void
+    save: (code: string, imageUrl: string) => void,
 }) {
     console.log('rendering Preview');
 
-    const [imgTag, setImgTag] = useState<ReactElement>(
-        <img src="/file.svg" className="object-fit"/>
-    );
+    // const [imgTag, setImgTag] = useState<ReactElement>(
+    //     <img src="/file.svg" className="object-fit"/>
+    // );
+    const [imgUrl, setImgURL] = useState<string | undefined>("/file.svg");
 
-    useEffect(() => {
-        if (code === undefined || code === "") {
-            // Keep default image for empty code
-        } else {
-            // Show loading state
-            setImgTag(<div>Rendering TikZ...</div>);
-
-            // Create the full LaTeX code with tikzpicture environment
-            const tikzCode = `\\begin{tikzpicture}${code}\\end{tikzpicture}`;
-
-            // Send to QuickLaTeX and update image when done
-            sendToQuickLaTeX(tikzCode)
-                .then(imageUrl => {
-                    console.log("Image URL:", imageUrl);
-                    // Set the image tag with the received URL
-                    setImgTag(<img src={imageUrl} className="object-fit" alt="TikZ diagram"/>);
-                })
-                .catch(error => {
-                    console.error("Rendering error:", error);
-                    setImgTag(<div className="text-red-500">Error rendering TikZ: {error.message}</div>);
-                });
-        }
-    }, [code, sendToQuickLaTeX]);
-
-    return <div
-        id="preview-container"
-        className="row-span-6 col-start-1 border-1"
-    >
-        <div className="float-right">
-            <button onClick={() => save(code)}>
-                <img src="/window.svg" className="h-[5vh]"/>
-            </button>
-        </div>
-        <div className="float-right">
-            <button onClick={() => exportCode(code)}>
-                <img src="/export.svg" className="h-[5vh]"/>
-            </button>
-        </div>
-        <div className="flex justify-center h-[40vh]">
-            {imgTag}
-        </div>
-    </div>
-}
-
-export default function Home() {
-
-    const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
-    const [currentSnapshot, setCurrentSnapshot] = useState<Snapshot | undefined>(undefined);
-    // const [currentCode, setCurrentCode] = useState('');
-    const [renderTimeout, setRenderTimeout] = useState<NodeJS.Timeout>();
-
-    function handleEditorChange(value: string) {
-        console.log('here is the current model value:', value);
-        clearTimeout(renderTimeout);
-        setRenderTimeout(
-            setTimeout(async () => {
-                console.log("Rendering ...", {value});
-                setCurrentSnapshot({
-                    code: value,
-                    // image: imageTag
-                })
-            }, 500)
-        );
-    }
-   /* TODO: add functionality to transition from dark to light mode */
     async function sendToQuickLaTeX(tex: string): Promise<string> {
         const params = new URLSearchParams({
             'formula': tex,
@@ -130,44 +103,93 @@ export default function Home() {
         throw new Error('QuickLaTeX error: ' + data);
     }
 
+    const imgTag = imgUrl === undefined ?
+        <div>Rendering TikZ...</div> :
+        <img src={imgUrl} className="object-fit" />;
 
-    function saveSnapshot(code: string | undefined) {
-        if (code) {
-            setSnapshots((oldSnapshots) => [{code: code}].concat(oldSnapshots));
+
+    useEffect(() => {
+        if (code === undefined || code === "") {
+            // Keep default image for empty code
         } else {
-            console.log("NOPE")
-        }
-    }
+            // Show loading state
+            // setImgTag(<div>Rendering TikZ...</div>);
+            setImgURL(undefined);
 
-    // Function to export the code as a .tex file
-    // This function creates a Blob from the code and triggers a download
-    // adds the tikzpicture environment
-    // function exportCode(code: string | undefined) {
-    //     if (code) {
-    //         const tikzCode = `\\begin{tikzpicture}\n${code}\n\\end{tikzpicture}`;
-    //         const blob = new Blob([tikzCode], {type: 'text/plain'});
-    //         const url = URL.createObjectURL(blob);
-    //         const a = document.createElement('a');
-    //         a.href = url;
-    //         a.download = 'quick_tikz_code.tex';
-    //         a.click();
-    //         URL.revokeObjectURL(url);
-    //     }
-    // }
+            // Create the full LaTeX code with tikzpicture environment
+            const tikzCode = `\\begin{tikzpicture}${code}\\end{tikzpicture}`;
 
-      // function to export the code to the clipboard
-    function exportCode(code: string | undefined) {
-        if (code) {
-            const tikzCode = `\\begin{tikzpicture}\n${code}\n\\end{tikzpicture}`;
-            navigator.clipboard.writeText(tikzCode)
-                .then(() => {
-                    console.log('Code copied to clipboard');
+            // Send to QuickLaTeX and update image when done
+            sendToQuickLaTeX(tikzCode)
+                .then(imageUrl => {
+                    console.log("Image URL:", imageUrl);
+                    // Set the image tag with the received URL
+                    // setImgTag(<img src={imageUrl} className="object-fit" alt="TikZ diagram"/>);
+                    setImgURL(imageUrl);
                 })
-                .catch(err => {
-                    console.error('Failed to copy code: ', err);
+                .catch(error => {
+                    console.error("Rendering error:", error);
+                    // setImgTag(<div className="text-red-500">Error rendering TikZ: {error.message}</div>);
+                    setImgURL("/file.svg");
                 });
         }
+    }, [code]);
+
+    function saveWrapper() {
+        if (code === undefined || code === "" || imgUrl === undefined) {
+            // don't save if nothing to save yet
+        } else {
+            save(code, imgUrl);
+        }
     }
+
+    return <div
+            id="preview-container"
+            className="row-span-6 col-start-1 border-1"
+        >
+            <div className="float-right">
+                <button onClick={() => saveWrapper()}>
+                    <img src="/window.svg" className="h-[5vh]"/>
+                </button>
+            </div>
+            <div className="float-right">
+                <button onClick={() => exportCode(code)}>
+                    <img src="/export.svg" className="h-[5vh]"/>
+                </button>
+            </div>
+            <div className="flex justify-center h-[40vh]">
+                {imgTag}
+            </div>
+        </div>;
+}
+
+export default function Home() {
+
+    const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
+    // const [currentSnapshot, setCurrentSnapshot] = useState<Snapshot | undefined>(undefined);
+    const [currentCode, setCurrentCode] = useState('');
+    const [renderTimeout, setRenderTimeout] = useState<NodeJS.Timeout>();
+
+    function handleEditorChange(value: string) {
+        console.log('here is the current model value:', value);
+        clearTimeout(renderTimeout);
+        setRenderTimeout(
+            setTimeout(async () => {
+                console.log("Rendering ...", {value});
+                setCurrentCode(value);
+            }, 500)
+        );
+    }
+    /* TODO: add functionality to transition from dark to light mode */
+
+    function saveSnapshot(code: string, imageUrl: string) {
+        setSnapshots((oldSnapshots) => [{code: code, imageUrl: imageUrl}].concat(oldSnapshots));
+    }
+
+    function loadSnapshot(snapshot: Snapshot) {
+        setCurrentCode(snapshot.code);
+    }
+
     console.log("rendering Home");
 
     return (
@@ -183,18 +205,18 @@ export default function Home() {
                             TikZ
                         </div>
                     </button>
-                    <button
+                    {/* <button
                         type="button"
                         className="rounded-full border border-solid m-2"
                     >
                         <div className="p-1">
                             circuitikz
                         </div>
-                    </button>
+                    </button> */}
                     <button
                       type="button"
                       className="m-2 ml-auto"
-                      onClick={() => exportCode(currentSnapshot?.code)}
+                      onClick={() => exportCode(currentCode)}
                     >
                       <div className="p-1 flex items-center">
                         <img src="/export.svg" className="h-[3vh] mr-1" />
@@ -209,35 +231,34 @@ export default function Home() {
                     height="50vh"
                 />
                 <Preview
-                    code={currentSnapshot?.code}
+                    code={currentCode}
                     save={saveSnapshot}
-                    sendToQuickLaTeX={sendToQuickLaTeX}
-                    exportCode={exportCode}
+                    // sendToQuickLaTeX={sendToQuickLaTeX}
+                    // exportCode={exportCode}
                 />
                 <div
                     className="row-span-15 row-start-1 col-start-2 border-1 grid flex-row"
                 >
                     snapshots
-                    {snapshots.map((snapshot, idx) => <div
+                    {snapshots.map((snapshot, idx) => <SnapshotView
                         key={idx}
-                        className="w-4"
-                    >
-                        // TODO: render snapshot history
-                    </div>)}
+                        snapshot={snapshot}
+                        load={loadSnapshot}
+                    />)}
                     {/* snapshot history goes here */}
                 </div>
                 {/* <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol> */}
+                    <li className="mb-2 tracking-[-.01em]">
+                        Get started by editing{" "}
+                        <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
+                            src/app/page.tsx
+                        </code>
+                        .
+                    </li>
+                    <li className="tracking-[-.01em]">
+                        Save and see your changes instantly.
+                    </li>
+                </ol> */}
             </main>
             <footer className="flex gap-[24px] flex-wrap items-center justify-center">
                 <a className="flex items-center gap-2 hover:underline hover:underline-offset-4">
