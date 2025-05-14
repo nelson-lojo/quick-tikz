@@ -25,7 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <script src="https://bill-ion.github.io/tikzjax-live/dist/tikzjax.js" />
+        {/* <script src="https://bill-ion.github.io/tikzjax-live/dist/tikzjax.js" /> */}
         {/* <script src="https://tikzjax-demo.glitch.me/tikzjax.js" /> */}
         <link rel="stylesheet" type="text/css" href="http://tikzjax.com/v1/fonts.css" />
       </head>

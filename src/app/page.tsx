@@ -1,5 +1,5 @@
 'use client';
-import {EventHandler, ReactElement, useEffect, useRef, useState} from "react";
+import {useEffect, useState} from "react";
 // import Image from "next/image";
 import AceEditor from "react-ace";
 
@@ -46,12 +46,12 @@ function exportCode(code: string | undefined) {
     }
 }
 
-function SnapshotView({snapshot}: {
+function SnapshotView({snapshot, load}: {
     snapshot: Snapshot
     load: (snapshot: Snapshot) => void,
 }) {
-    return <div className="w-4 border-1">
-        <img src={snapshot.imageUrl} className="object-fit" />
+    return <div className="aspect-3/2 border-1" onDoubleClick={() => load(snapshot)}>
+        <img src={snapshot.imageUrl} className="w-full h-full object-scale-down object-fit" />
     </div>;
 }
 
@@ -105,7 +105,7 @@ function Preview({code, save}: {
 
     const imgTag = imgUrl === undefined ?
         <div>Rendering TikZ...</div> :
-        <img src={imgUrl} className="object-fit" />;
+        <img src={imgUrl} className="w-full h-full object-fit" />;
 
 
     useEffect(() => {
@@ -147,14 +147,12 @@ function Preview({code, save}: {
             id="preview-container"
             className="row-span-6 col-start-1 border-1"
         >
-            <div className="float-right">
-                <button onClick={() => saveWrapper()}>
-                    <img src="/window.svg" className="h-[5vh]"/>
-                </button>
-            </div>
-            <div className="float-right">
+            <div className="float-right flex gap-4">
                 <button onClick={() => exportCode(code)}>
                     <img src="/export.svg" className="h-[5vh]"/>
+                </button>
+                <button onClick={() => saveWrapper()}>
+                    <img src="/window.svg" className="h-[5vh]"/>
                 </button>
             </div>
             <div className="flex justify-center h-[40vh]">
@@ -167,27 +165,25 @@ export default function Home() {
 
     const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
     // const [currentSnapshot, setCurrentSnapshot] = useState<Snapshot | undefined>(undefined);
-    const [currentCode, setCurrentCode] = useState('');
+    const [renderedCode, setRenderedCode] = useState('');
+    const [editorCode, setEditorCode] = useState('');
     const [renderTimeout, setRenderTimeout] = useState<NodeJS.Timeout>();
 
-    function handleEditorChange(value: string) {
-        console.log('here is the current model value:', value);
+    useEffect(() => {
+        console.log('here is the current model value:', editorCode);
         clearTimeout(renderTimeout);
         setRenderTimeout(
             setTimeout(async () => {
-                console.log("Rendering ...", {value});
-                setCurrentCode(value);
+                console.log("Rendering ...", {editorCode});
+                setRenderedCode(editorCode);
             }, 500)
         );
-    }
+    }, [editorCode])
+
     /* TODO: add functionality to transition from dark to light mode */
 
     function saveSnapshot(code: string, imageUrl: string) {
         setSnapshots((oldSnapshots) => [{code: code, imageUrl: imageUrl}].concat(oldSnapshots));
-    }
-
-    function loadSnapshot(snapshot: Snapshot) {
-        setCurrentCode(snapshot.code);
     }
 
     console.log("rendering Home");
@@ -216,7 +212,7 @@ export default function Home() {
                     <button
                       type="button"
                       className="m-2 ml-auto"
-                      onClick={() => exportCode(currentCode)}
+                      onClick={() => exportCode(editorCode)}
                     >
                       <div className="p-1 flex items-center">
                         <img src="/export.svg" className="h-[3vh] mr-1" />
@@ -227,38 +223,25 @@ export default function Home() {
                     className="row-span-8 col-start-1 font-mono resize-none border-1"
                     name="code-editor"
                     width="50"
-                    onChange={handleEditorChange}
+                    value={editorCode}
+                    onChange={(value) => setEditorCode(value)}
                     height="50vh"
                 />
                 <Preview
-                    code={currentCode}
+                    code={renderedCode}
                     save={saveSnapshot}
-                    // sendToQuickLaTeX={sendToQuickLaTeX}
-                    // exportCode={exportCode}
                 />
-                <div
-                    className="row-span-15 row-start-1 col-start-2 border-1 grid flex-row"
-                >
-                    snapshots
-                    {snapshots.map((snapshot, idx) => <SnapshotView
-                        key={idx}
-                        snapshot={snapshot}
-                        load={loadSnapshot}
-                    />)}
-                    {/* snapshot history goes here */}
+                <div className="row-span-15 row-start-1 col-start-2 border-1 w-50%">
+                    {/* <div className="float-start col-span-2 h-8">snapshots</div> */}
+                    <div className="m-4 grid flex grid-cols-3 flex-row gap-4">
+                        {snapshots.map((snapshot, idx) => <SnapshotView
+                            key={idx}
+                            snapshot={snapshot}
+                            load={(snapshot: Snapshot) => setEditorCode(snapshot.code)}
+                        />)}
+                        {/* snapshot history goes here */}
+                    </div>
                 </div>
-                {/* <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-                    <li className="mb-2 tracking-[-.01em]">
-                        Get started by editing{" "}
-                        <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-                            src/app/page.tsx
-                        </code>
-                        .
-                    </li>
-                    <li className="tracking-[-.01em]">
-                        Save and see your changes instantly.
-                    </li>
-                </ol> */}
             </main>
             <footer className="flex gap-[24px] flex-wrap items-center justify-center">
                 <a className="flex items-center gap-2 hover:underline hover:underline-offset-4">
