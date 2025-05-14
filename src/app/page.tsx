@@ -61,77 +61,20 @@ function Preview({code, save}: {
 }) {
     console.log('rendering Preview');
 
-    // const [imgTag, setImgTag] = useState<ReactElement>(
-    //     <img src="/file.svg" className="object-fit"/>
-    // );
     const [imgUrl, setImgURL] = useState<string | undefined>("/file.svg");
-
-    async function sendToQuickLaTeX(tex: string): Promise<string> {
-        const params = new URLSearchParams({
-            'formula': tex,
-            'fsize': '17px',
-            'fcolor': '000000',
-            'mode': '0',
-            'out': '1',
-            'remhost': 'quicklatex.com',
-            'preamble': IMPORTS
-        });
-
-        const response = await fetch('/api/quicklatex', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: params
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to generate LaTeX image');
-        }
-
-        const result = await response.json();
-        const data = result.data.trim();
-        const parts = data.split(/\s+/);
-
-        if (parts[0] === '0') {
-            // standard: [status, url, ...]
-            return parts[1];
-        } else if (parts[1] === '0') {
-            // alternate: [url, status, ...]
-            return parts[0];
-        }
-        throw new Error('QuickLaTeX error: ' + data);
-    }
 
     const imgTag = imgUrl === undefined ?
         <div>Rendering TikZ...</div> :
         <img src={imgUrl} className="object-fit" />;
 
-
     useEffect(() => {
         if (code === undefined || code === "") {
             // Keep default image for empty code
         } else {
-            // Show loading state
-            // setImgTag(<div>Rendering TikZ...</div>);
-            setImgURL(undefined);
-
             // Create the full LaTeX code with tikzpicture environment
-            const tikzCode = `\\begin{tikzpicture}${code}\\end{tikzpicture}`;
+            const latex = `\\begin{document}\\begin{tikzpicture}${code}\\end{tikzpicture}\\end{document}`;
 
-            // Send to QuickLaTeX and update image when done
-            sendToQuickLaTeX(tikzCode)
-                .then(imageUrl => {
-                    console.log("Image URL:", imageUrl);
-                    // Set the image tag with the received URL
-                    // setImgTag(<img src={imageUrl} className="object-fit" alt="TikZ diagram"/>);
-                    setImgURL(imageUrl);
-                })
-                .catch(error => {
-                    console.error("Rendering error:", error);
-                    // setImgTag(<div className="text-red-500">Error rendering TikZ: {error.message}</div>);
-                    setImgURL("/file.svg");
-                });
+            setImgURL(`/api/render?latex=${btoa(latex)}`);
         }
     }, [code]);
 
