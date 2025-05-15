@@ -1,11 +1,6 @@
-import { Figure, parseTikzCode } from "@/lib/figures";
+import { sendToQuickLaTeX } from "@/lib/quicklatex";
 import { useEffect, useState } from "react";
 
-const IMPORTS = `\\usepackage{amsmath}
-\\usepackage{amsfonts}
-\\usepackage{amssymb}
-\\usepackage{tikz}
-\\usetikzlibrary{calc}`
 
 export default function Preview({code, save}: {
     code: string | undefined,
@@ -17,48 +12,6 @@ export default function Preview({code, save}: {
     //     <img src="/file.svg" className="object-fit"/>
     // );
     const [imgUrl, setImgURL] = useState<string | undefined>("/file.svg");
-
-    async function sendToQuickLaTeX(tex: string): Promise<string> {
-        const params = {
-            'formula': tex,
-            'fsize': '17px',
-            'fcolor': '000000',
-            'mode': '0',
-            'out': '1',
-            'remhost': 'quicklatex.com',
-            'preamble': IMPORTS,
-            'rnd':  (Math.random() * (100 - 1) + 1).toString(),
-        };
-        // write the params as a URL query 
-        const formBody = Object.entries(params)
-            .map(([key, value]) => key + '=' + value)
-            .join('&');
-
-        const response = await fetch('/api/quicklatex', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: formBody
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to generate LaTeX image');
-        }
-
-        const result = await response.json();
-        const data = result.data.trim();
-        const parts = data.split(/\s+/);
-
-        if (parts[0] === '0') {
-            // standard: [status, url, ...]
-            return parts[1];
-        } else if (parts[1] === '0') {
-            // alternate: [url, status, ...]
-            return parts[0];
-        }
-        throw new Error('QuickLaTeX error: ' + data);
-    }
 
     const imgTag = imgUrl === undefined ?
         <div>Rendering TikZ...</div> :
@@ -74,7 +27,7 @@ export default function Preview({code, save}: {
             setImgURL(undefined);
 
             // Create the full LaTeX code with tikzpicture environment
-            const tikzCode = `\\begin{tikzpicture}\n${code}\n\\end{tikzpicture}`;
+            // const tikzCode = `\\begin{tikzpicture}\n${code}\n\\end{tikzpicture}`;
 
             // // // testing parsing
             // console.log("Parsed TikZ code:", parseTikzCode(code).toString());
@@ -97,8 +50,7 @@ export default function Preview({code, save}: {
 
 
             // Send to QuickLaTeX and update image when done
-            console.log("Sending to QuickLaTeX:", tikzCode);
-            sendToQuickLaTeX(tikzCode)
+            sendToQuickLaTeX(code)
                 .then(imageUrl => {
                     console.log("Image URL:", imageUrl);
                     // Set the image tag with the received URL
