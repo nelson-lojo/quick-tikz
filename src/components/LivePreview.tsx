@@ -1,13 +1,11 @@
 import { Figure, parseTikzCode } from "@/lib/figures";
 import { useEffect, useState } from "react";
 
-const IMPORTS = `
-\\usepackage{amsmath}
+const IMPORTS = `\\usepackage{amsmath}
 \\usepackage{amsfonts}
 \\usepackage{amssymb}
 \\usepackage{tikz}
-\\usetikzlibrary{calc}
-`
+\\usetikzlibrary{calc}`
 
 export default function Preview({code, save}: {
     code: string | undefined,
@@ -21,22 +19,27 @@ export default function Preview({code, save}: {
     const [imgUrl, setImgURL] = useState<string | undefined>("/file.svg");
 
     async function sendToQuickLaTeX(tex: string): Promise<string> {
-        const params = new URLSearchParams({
+        const params = {
             'formula': tex,
             'fsize': '17px',
             'fcolor': '000000',
             'mode': '0',
             'out': '1',
             'remhost': 'quicklatex.com',
-            'preamble': IMPORTS
-        });
+            'preamble': IMPORTS,
+            'rnd':  (Math.random() * (100 - 1) + 1).toString(),
+        };
+        // write the params as a URL query 
+        const formBody = Object.entries(params)
+            .map(([key, value]) => key + '=' + value)
+            .join('&');
 
         const response = await fetch('/api/quicklatex', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: params
+            body: formBody
         });
 
         if (!response.ok) {
@@ -71,29 +74,30 @@ export default function Preview({code, save}: {
             setImgURL(undefined);
 
             // Create the full LaTeX code with tikzpicture environment
-            const tikzCode = `\\begin{tikzpicture}${code}\\end{tikzpicture}`;
+            const tikzCode = `\\begin{tikzpicture}\n${code}\n\\end{tikzpicture}`;
 
-            // // testing parsing
-            console.log("Parsed TikZ code:", parseTikzCode(code).toString());
+            // // // testing parsing
+            // console.log("Parsed TikZ code:", parseTikzCode(code).toString());
 
-            // // testing converting back to code
-            console.log("Converted back to code:", parseTikzCode(code).toCode());
+            // // // testing converting back to code
+            // console.log("Converted back to code:", parseTikzCode(code).toCode());
 
             // testing decomposing figures
-            const figure = parseTikzCode(code);
-            const figures = figure.decompose();
-            console.log("Decomposed figures:", figures.map(f => f.toCode()));
-            // testing combining figures
-            const combinedFigure = Figure.combine(figures);
-            console.log("Combined figure:", combinedFigure.toCode());
+            // const figure = parseTikzCode(code);
+            // const figures = figure.decompose();
+            // console.log("Decomposed figures:", figures.map(f => f.toCode()));
+            // // testing combining figures
+            // const combinedFigure = Figure.combine(figures);
+            // console.log("Combined figure:", combinedFigure.toCode());
 
-            // testing exploring figures
-            const exploredFigures = figure.explore(2);
-            console.log("Explored figures:", exploredFigures.map(f => f.toCode()));
+            // // testing exploring figures
+            // const exploredFigures = figure.explore(2);
+            // console.log("Explored figures:", exploredFigures.map(f => f.toCode()));
 
 
 
             // Send to QuickLaTeX and update image when done
+            console.log("Sending to QuickLaTeX:", tikzCode);
             sendToQuickLaTeX(tikzCode)
                 .then(imageUrl => {
                     console.log("Image URL:", imageUrl);
