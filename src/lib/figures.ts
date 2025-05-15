@@ -66,7 +66,7 @@ class FigElement {
   }
 }
 
-class Figure {
+export class Figure {
   commands: FigElement[];
   constructor(commands: FigElement[]) {
     this.commands = commands;
@@ -139,7 +139,7 @@ class Figure {
 
 
 // function parses the tikz code and returns a Figure object
-function parseTikzCode(code: string): Figure {
+export function parseTikzCode(code: string): Figure {
   const lines = code.split(';').map(l => l.trim()).filter(l => l.length > 0);
   const commands: FigElement[] = lines.map(line => {
     // Extract command name (e.g., draw, filldraw, shade)
