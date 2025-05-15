@@ -147,7 +147,6 @@ class Figure {
         return figures;
     }
 
-
   static combine(figures: Figure[]): Figure {
     return figures.reduce(
       (acc, fig) => acc.compose(fig),
