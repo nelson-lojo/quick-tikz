@@ -1,10 +1,3 @@
-// // set of valid tikz colors
-// const COLORS = ;
-// //set of valid tikz line widths
-// const LINE_WIDTHS =
-// //set of valid tikz line styles
-// const SOLID = ;
-
 const COLORS = [
   "red",
   "green",
@@ -84,17 +77,6 @@ function genVariants(attribute: FigAttribute, breadth: number = 3): FigAttribute
   return variants;
 }
 
-
-// type FigElement = {
-//   command: string;
-//   attributes: FigAttribute[];
-//   body: string; 
-// } | {
-//   command: "_scope";
-//   attributes: FigAttribute[];
-//   body: FigElement[]; 
-// };
-
 class FigElement {
   command: string;
   attributes: FigAttribute[];
@@ -115,22 +97,6 @@ class FigElement {
     });
   }
 }
-
-// class FigScope {
-//   body: FigElement[];
-//   constructor(attributes: FigAttribute[], body: FigElement[]) {
-//     this.attributes = attributes;
-//     this.body = body;
-//   }
-//   toString(): string {
-//     return `\\begin{scope}[${this.attributes.join(", ")}]
-// ${(typeof(this.body) === "string")
-//   ? this.body
-//   : this.body.join("\n")}
-// \\end{scope}`;
-//   }
-//   //
-// }
 
 export class Figure {
   elements: (FigElement | Figure)[];
@@ -216,7 +182,7 @@ ${this.elements.join("\n")}
     return figures;
   }
 
-  static combine(figures: Figure[]): Figure { // TODO: Vestige of ye olden days
+  static combine(figures: Figure[]): Figure {
     return figures.reduce((acc, fig) => acc.compose(fig), new Figure([], [], true));
   }
 }
