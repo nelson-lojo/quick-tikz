@@ -62,7 +62,10 @@ export default function Preview({code, save}: {
 
     const imgTag = imgUrl === undefined ?
         <div>Rendering TikZ...</div> :
-        <img src={imgUrl} className="w-full h-full object-fit" />;
+        (imgUrl === "/file.svg"
+            ? <img src={imgUrl} className="h-3/4 w-3/4 object-contain mx-auto" />
+            : <img src={imgUrl} className="w-full h-full object-fit" />
+        );
 
 
     useEffect(() => {
@@ -122,18 +125,17 @@ export default function Preview({code, save}: {
     }
 
     return <div
-            id="preview-container"
-            className="row-span-6 col-start-1 border-1"
+            className="w-full h-full flex flex-col border-1 overflow-hidden"
         >
-            <div className="float-right flex gap-4">
+            <div className="flex justify-end items-center gap-2 w-full px-2 pt-2">
                 <button onClick={() => exportCode(code)}>
-                    <img src="/export.svg" className="h-[5vh]"/>
+                    <img src="/export.svg" className="h-5"/>
                 </button>
                 <button onClick={() => saveWrapper()}>
-                    <img src="/window.svg" className="h-[5vh]"/>
+                    <img src="/window.svg" className="h-5"/>
                 </button>
             </div>
-            <div className="flex justify-center h-[40vh]">
+            <div className="flex-1 min-h-0 flex items-center justify-center w-full overflow-hidden">
                 {imgTag}
             </div>
         </div>;

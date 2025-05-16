@@ -28,7 +28,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} antialiased`}>
         <AuthProvider>
-          <Navigation />
+          {/* <Navigation /> */}
           <main>{children}</main>
         </AuthProvider>
       </body>
