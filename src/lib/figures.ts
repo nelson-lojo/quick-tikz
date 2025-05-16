@@ -38,11 +38,11 @@ const VARIABLE_ATTRIBUTES = {
   // _lineWidth : [...] // TODO: @chris
   _color: COLORS,
   color: COLORS,
-  "inner color": COLORS
+  "inner color": COLORS,
 };
 
-type ExplorableCmd = keyof(typeof VARIABLE_ATTRIBUTES);
-type FigAttributeExplorable = (FigAttribute & { name: ExplorableCmd });
+// type ExplorableCmd = keyof typeof VARIABLE_ATTRIBUTES;
+// type FigAttributeExplorable = FigAttribute & { name: ExplorableCmd };
 
 class FigAttribute {
   name: string;
@@ -55,7 +55,7 @@ class FigAttribute {
     return JSON.stringify({ name: this.name, value: this.value });
   }
   toString(): string {
-    return this.name.charAt(0) == '_' ? `${this.value}` : `${this.name}=${this.value}`;
+    return this.name.charAt(0) == "_" ? `${this.value}` : `${this.name}=${this.value}`;
   }
   clone(): FigAttribute {
     return new FigAttribute(this.name, this.value);
@@ -70,7 +70,7 @@ class FigAttribute {
 function genVariants(attribute: FigAttribute, breadth: number = 3): FigAttribute[] {
   const variants: FigAttribute[] = [];
   // @ts-expect-error
-  const allVariants: string[] = VARIABLE_ATTRIBUTES[attribute.name] ?? [attribute.value]
+  const allVariants: string[] = VARIABLE_ATTRIBUTES[attribute.name] ?? [attribute.value];
   // filter out current value
   const candidates = allVariants.filter((v) => v !== attribute.value);
   // determine how many variants to generate
@@ -108,7 +108,7 @@ class FigElement {
       this.command,
       this.attributes.map((a) => a.clone()),
       this.body
-    )
+    );
   }
 }
 
@@ -169,46 +169,35 @@ ${this.elements.join("\n")}
   }
 
   explore(breadth: number = 3, attributesToVary: number = 2): Figure[] {
-    const allAttrs = this.elements.flatMap(el => el.attributes.map(attr => ));
-    const dupedElems: (FigElement | Figure)[] = this.elements.flatMap((el) => Array(el.attributes.length).fill([]));
-    const attrIndexes = [...Array(allAttrs.length).keys()
-      ].filter( idx => allAttrs[idx].isExplorable()
-      ).toSorted( () => Math.random() - 0.5
-      ).slice(0, attributesToVary);
-
-    type SelAttr = {
-      attr: FigAttributeExplorable,
-      elem: FigElement | Figure
-    };
-    const selectedAttrs: SelAttr[] = attrIndexes.map(
-      selectedIdx => { return {
-        attr: allAttrs[selectedIdx] as FigAttributeExplorable,
-        elem: dupedElems[selectedIdx]
-      };}
+    const allVariations = this.elements.flatMap((el, elIndex) =>
+      el.attributes
+        .filter((attr) => attr.isExplorable())
+        .map((attr, attrIndex) => {
+          const variants = genVariants(attr, breadth);
+          return (fig: Figure): Figure[] =>
+            [fig].concat(
+              variants.map((variant) => {
+                const f = fig.clone();
+                // replace only the targeted attribute
+                f.elements[elIndex].attributes[attrIndex] = variant;
+                return f;
+              })
+            );
+        })
     );
 
-    const transformFig = (sAttr: SelAttr) => (fig: Figure) => {
-      //
-      return new Figure()
-    };
-    const figures: Figure[] = [];
+    const selectedVariations = [];
+    for (let idx = 0; idx < attributesToVary; idx++) {
+      selectedVariations.push(
+        allVariations.splice(Math.floor(Math.random() * allVariations.length), 1)[0]
+      );
+    }
 
-    // original figure
-    figures.push(new Figure(this.elements, this.attributes, true));
-    // variants for each explorable attribute
-    this.elements.forEach((elem, cmdIdx) => {
-      elem.attributes.forEach((attr, attrIdx) => {
-        if (attr.isExplorable()) {
-          const variants = genVariants(attr, breadth);
-          variants.forEach((variant) => {
-            const newCommands = this.elements.map((e) => e.clone());
-            // replace only the targeted attribute
-            newCommands[cmdIdx].attributes[attrIdx] = variant;
-            figures.push(new Figure(newCommands, [], true));
-          });
-        }
-      });
-    });
+    const figures = selectedVariations.reduce(
+      (prevFigs, currVariation) => prevFigs.flatMap((f) => currVariation(f)),
+      [this.clone()]
+    );
+
     return figures;
   }
 
@@ -237,7 +226,7 @@ export function parseTikzCode(code: string): Figure {
         .split(",")
         .map((s) => s.trim())
         .filter((s) => s);
-        bodyString = line.slice(line.indexOf("]") + 1).trim();
+      bodyString = line.slice(line.indexOf("]") + 1).trim();
     } else {
       // No attribute brackets: body is after the command name
       bodyString = line.slice(line.indexOf(command) + command.length + 1).trim();
@@ -254,8 +243,9 @@ export function parseTikzCode(code: string): Figure {
 
       part = part.trim();
 
-      const attrVariants = Object.entries(VARIABLE_ATTRIBUTES)
-        .find(([fieldName, values]) => values.includes(part));
+      const attrVariants = Object.entries(VARIABLE_ATTRIBUTES).find(([fieldName, values]) =>
+        values.includes(part)
+      );
       if (attrVariants === undefined) return new FigAttribute("", part);
 
       const name: string = attrVariants[0];
@@ -266,7 +256,6 @@ export function parseTikzCode(code: string): Figure {
       tmpFig = new Figure([], attributes, false);
       figChain.at(-1)?.elements.push(tmpFig); //TODO
       figChain.push(tmpFig);
-
     } else if (line.includes("\\end{scope}")) {
       figChain.pop();
       if (figChain.length < 1) {
