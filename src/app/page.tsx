@@ -5,6 +5,7 @@ import { sendToQuickLaTeX } from "@/lib/quicklatex";
 import {ReactElement, useEffect, useState} from "react";
 // import Image from "next/image";
 import AceEditor from "react-ace";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Snapshot = {
     code: string;
@@ -55,7 +56,7 @@ function SnapshotView({snapshot, load, decompose, explore, include}: {
 }
 
 export default function Home() {
-
+    const { user, signOut } = useAuth();
     const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
     // const [currentSnapshot, setCurrentSnapshot] = useState<Snapshot | undefined>(undefined);
     const [decomposing, setDecomposing] = useState<number>(-1);
@@ -142,57 +143,65 @@ export default function Home() {
     }
 
     return (
-        <>
-            {Boolean(exploring) &&
-                <div className="">
-                    {exploring}
-                </div>}
-            {/* <div className="grid grid-rows-2 items-left justify-items-left font-[family-name:var(--font-geist-sans)]"> */}
-            <main className="grid flex flex-row">
-                <div className="font-mono flex border-1">
-                    <button
-                        type="button"
-                        className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background hover:bg-[#383838] dark:hover:bg-[#ccc] m-2"
-                    >
-                        <div className="p-1">
-                            TikZ
-                        </div>
-                    </button>
-                    {/* <button
-                        type="button"
-                        className="rounded-full border border-solid m-2"
-                    >
-                        <div className="p-1">
-                            circuitikz
-                        </div>
-                    </button> */}
-                    <button
-                      type="button"
-                      className="m-2 ml-auto"
-                      onClick={() => exportCode(editorCode)}
-                    >
-                      <div className="p-1 flex items-center">
-                        <img src="/export.svg" className="h-[3vh] mr-1" />
-                      </div>
-                    </button>
+        <div className="h-screen flex flex-col">
+            <header className="flex-none p-2 bg-black text-white">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-xl font-bold">Quick TikZ</h1>
+                    <div className="font-mono flex items-center gap-4">
+                        {user && (
+                          <span className="text-sm">Welcome, {user.email}</span>
+                        )}
+                        <button
+                            type="button"
+                            className="rounded-full border border-solid border-white transition-colors flex items-center justify-center hover:bg-white hover:text-black px-3 py-1"
+                        >
+                            <div className="text-sm">
+                                TikZ
+                            </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => exportCode(editorCode)}
+                          className="hover:opacity-80"
+                        >
+                          <div className="flex items-center">
+                            <img src="/export.svg" className="h-5 invert" />
+                          </div>
+                        </button>
+                        {user && (
+                          <button
+                            type="button"
+                            onClick={signOut}
+                            className="ml-2 px-3 py-1 rounded bg-white text-black text-sm font-semibold hover:bg-gray-200 transition-colors"
+                          >
+                            Sign Out
+                          </button>
+                        )}
+                    </div>
                 </div>
-                <AceEditor
-                    className="row-span-8 col-start-1 font-mono resize-none border-1"
-                    name="code-editor"
-                    width="50"
-                    value={editorCode}
-                    onChange={(value) => setEditorCode(value)}
-                    height="50vh"
-                />
-                <Preview
-                    code={renderedCode}
-                    save={saveSnapshot}
-                />
-                <div className="row-span-15 row-start-1 col-start-2 border-1 w-50%">
-                    {/* <div className="float-start col-span-2 h-8">snapshots</div> */}
-                    <div className="m-4 grid flex grid-cols-3 flex-row gap-4">
-                        {snapshots.map((snapshot, idx) => <>
-                            <SnapshotView
+            </header>
+            <main className="flex-1 flex gap-2 p-2 overflow-hidden">
+                <div className="w-2/3 flex flex-col h-full min-h-0 relative overflow-hidden">
+                    <div className="flex-1 min-h-0 w-full">
+                        <AceEditor
+                            className="h-full w-full font-mono resize-none border-1"
+                            name="code-editor"
+                            value={editorCode}
+                            onChange={(value) => setEditorCode(value)}
+                            height="100%"
+                            width="100%"
+                        />
+                    </div>
+                    <div className="flex-1 min-h-0 w-full">
+                        <Preview
+                            code={renderedCode}
+                            save={saveSnapshot}
+                        />
+                    </div>
+                </div>
+                <div className="w-1/3 border-1 overflow-hidden">
+                    <div className="grid grid-cols-3 grid-rows-2 gap-2 p-2 h-full">
+                        {snapshots.slice(0, 6).map((snapshot, idx) => <> <SnapshotView
                                 key={idx}
                                 snapshot={snapshot}
                                 load={() => loadCode(snapshot.code)}
@@ -200,21 +209,19 @@ export default function Home() {
                                 explore={() => setExploring(explore(snapshot))}
                                 include={() => loadCode(editorCode + "\n" + snapshot.code)}
                             />
-                            {decomposing === idx && decompose(snapshot)}
+                        {decomposing === idx && decompose(snapshot)}
                         </>)}
-                        {/* snapshot history goes here */}
                     </div>
                 </div>
             </main>
-            <footer className="flex gap-[24px] flex-wrap items-center justify-center">
-                <a className="flex items-center gap-2 hover:underline hover:underline-offset-4">
+            <footer className="flex-none flex gap-4 items-center justify-center p-1 border-t">
+                <a className="flex items-center gap-2 hover:underline hover:underline-offset-4 text-xs">
                     Check Us Out!
                 </a>
-                <a className="flex items-center gap-2 hover:underline hover:underline-offset-4">
+                <a className="flex items-center gap-2 hover:underline hover:underline-offset-4 text-xs">
                     Examples
                 </a>
             </footer>
-            {/* </div> */}
-        </>
+        </div>
     );
 }
