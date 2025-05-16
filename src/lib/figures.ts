@@ -41,7 +41,8 @@ const VARIABLE_ATTRIBUTES = {
   "inner color": COLORS
 };
 
-type FigAttributeExplorable = (FigAttribute & { name: (keyof(typeof VARIABLE_ATTRIBUTES)) });
+type ExplorableCmd = keyof(typeof VARIABLE_ATTRIBUTES);
+type FigAttributeExplorable = (FigAttribute & { name: ExplorableCmd });
 
 class FigAttribute {
   name: string;
@@ -55,6 +56,12 @@ class FigAttribute {
   }
   toString(): string {
     return this.name.charAt(0) == '_' ? `${this.value}` : `${this.name}=${this.value}`;
+  }
+  clone(): FigAttribute {
+    return new FigAttribute(this.name, this.value);
+  }
+  isExplorable(): boolean {
+    return Object.hasOwn(VARIABLE_ATTRIBUTES, this.name);
   }
 }
 
@@ -96,6 +103,13 @@ class FigElement {
       body: this.body,
     });
   }
+  clone(): FigElement {
+    return new FigElement(
+      this.command,
+      this.attributes.map((a) => a.clone()),
+      this.body
+    )
+  }
 }
 
 export class Figure {
@@ -122,6 +136,13 @@ export class Figure {
 ${this.elements.join("\n")}
 \\end{${envName}}`;
   }
+  clone(): Figure {
+    return new Figure(
+      this.elements.map((e) => e.clone()),
+      this.attributes.map((a) => a.clone()),
+      this.isRoot
+    );
+  }
   compose(other: Figure, heirarchical?: boolean): Figure {
     if (heirarchical) {
       other = new Figure(other.elements, other.attributes, false);
@@ -147,34 +168,43 @@ ${this.elements.join("\n")}
     );
   }
 
-  explore(breadth: number = 3): Figure[] { // TODO
+  explore(breadth: number = 3, attributesToVary: number = 2): Figure[] {
+    const allAttrs = this.elements.flatMap(el => el.attributes.map(attr => ));
+    const dupedElems: (FigElement | Figure)[] = this.elements.flatMap((el) => Array(el.attributes.length).fill([]));
+    const attrIndexes = [...Array(allAttrs.length).keys()
+      ].filter( idx => allAttrs[idx].isExplorable()
+      ).toSorted( () => Math.random() - 0.5
+      ).slice(0, attributesToVary);
+
+    type SelAttr = {
+      attr: FigAttributeExplorable,
+      elem: FigElement | Figure
+    };
+    const selectedAttrs: SelAttr[] = attrIndexes.map(
+      selectedIdx => { return {
+        attr: allAttrs[selectedIdx] as FigAttributeExplorable,
+        elem: dupedElems[selectedIdx]
+      };}
+    );
+
+    const transformFig = (sAttr: SelAttr) => (fig: Figure) => {
+      //
+      return new Figure()
+    };
     const figures: Figure[] = [];
-    // helper to deep-clone commands and attributes
-    const cloneCommands = (commands: FigElement[]) =>
-      commands.map(
-        (cmd) =>
-          new FigElement(
-            cmd.command,
-            cmd.attributes.map((a) =>
-              a instanceof FigAttributeExplorable
-                ? new FigAttributeExplorable(a.name, a.value, a.attributeType)
-                : new FigAttribute(a.name, a.value)
-            ),
-            cmd.body
-          )
-      );
+
     // original figure
-    figures.push(new Figure(cloneCommands(this.elements)));
+    figures.push(new Figure(this.elements, this.attributes, true));
     // variants for each explorable attribute
-    this.elements.forEach((cmd, cmdIdx) => {
-      cmd.attributes.forEach((attr, attrIdx) => {
-        if (attr instanceof FigAttributeExplorable) {
-          const variants = attr.genVariants(breadth);
+    this.elements.forEach((elem, cmdIdx) => {
+      elem.attributes.forEach((attr, attrIdx) => {
+        if (attr.isExplorable()) {
+          const variants = genVariants(attr, breadth);
           variants.forEach((variant) => {
-            const newCommands = cloneCommands(this.elements);
+            const newCommands = this.elements.map((e) => e.clone());
             // replace only the targeted attribute
             newCommands[cmdIdx].attributes[attrIdx] = variant;
-            figures.push(new Figure(newCommands));
+            figures.push(new Figure(newCommands, [], true));
           });
         }
       });
