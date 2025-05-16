@@ -1,7 +1,7 @@
 // set of valid tikz colors
 const COLORS = ['red', 'green', 'blue', 'yellow', 'cyan', 'magenta', 'black', 'white', 'gray', 'orange', 'purple', 'brown', 'pink', 'teal', 'violet', 'lime', 'olive', 'navy', 'maroon', 'silver', 'gold'];
 //set of valid tikz line widths
-const LINE_WIDTHS = ['ultra thin', 'very thin', 'thin', 'semithick', 'thick', 'very thick', 'ultra thick'];
+const LINE_WIDTHS = ['0.1pt', '0.2pt', '0.4pt', '0.6pt', '0.8pt', '1pt', '1.2pt', '1.6pt', '2pt'];
 //set of valid tikz line styles
 const SOLID = ['solid', 'dashed', 'dotted', 'dash dotted',  'loosely dotted', 'loosely dashdotted', 'densely dashed', 'densely dotted', 'densely dashdotted'];
 
@@ -80,7 +80,7 @@ export class Figure {
     return this.commands.map(elem => {
       if (elem.attributes.length > 0) {
         const attrString = elem.attributes
-          .map(attr => `${attr.name}=${attr.value}`)
+          .map(attr => attr.name == "solid" ? `${attr.value}` : `${attr.name}=${attr.value}`)
           .join(',');
         return `\\${elem.command}[${attrString}] ${elem.body};`;
       } else {

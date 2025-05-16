@@ -2,7 +2,7 @@
 import Preview from "@/components/LivePreview";
 import { Figure, parseTikzCode } from "@/lib/figures";
 import { sendToQuickLaTeX } from "@/lib/quicklatex";
-import {useEffect, useState} from "react";
+import {ReactElement, useEffect, useState} from "react";
 // import Image from "next/image";
 import AceEditor from "react-ace";
 
@@ -39,12 +39,14 @@ function AsyncImg({src, alt}: {src : Promise<string>, alt: string})  {
   return <img src={srcString} alt={alt} />
 }
 
-function SnapshotView({snapshot, load, decompose}: {
+function SnapshotView({snapshot, load, decompose, explore, include}: {
     snapshot: Snapshot,
     load: (snapshot: Snapshot) => void,
     decompose: (snapshot: Snapshot) => void,
+    explore: (snapshot: Snapshot) => void,
+    include: (snapshot: Snapshot) => void,
 }) {
-    return <div className="aspect-3/2 border-2" onDoubleClick={() => load(snapshot)} onContextMenu={() => decompose(snapshot)}>
+    return <div className="aspect-3/2 border-2" onClick={() => decompose(snapshot)} onDoubleClick={() => load(snapshot)} onContextMenu={() => explore(snapshot)}> {/* TODO: also include `include` */}
         {(typeof(snapshot.imageUrl) == "string")
             ? <img src={snapshot.imageUrl} className="w-full h-full object-scale-down object-fit" />
             : <AsyncImg src={snapshot.imageUrl} alt={"/file.png"} />
@@ -56,10 +58,13 @@ export default function Home() {
 
     const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
     // const [currentSnapshot, setCurrentSnapshot] = useState<Snapshot | undefined>(undefined);
-    const [decomposing, setDecomposing] = useState<boolean[]>([]);
+    const [decomposing, setDecomposing] = useState<number>(-1);
+    const [exploring, setExploring] = useState<ReactElement>();
     const [renderedCode, setRenderedCode] = useState('');
     const [editorCode, setEditorCode] = useState('');
     const [renderTimeout, setRenderTimeout] = useState<NodeJS.Timeout>();
+
+    const editorFigure = parseTikzCode(editorCode);
 
     useEffect(() => {
         console.log('here is the current model value:', editorCode);
@@ -76,7 +81,13 @@ export default function Home() {
 
     function saveSnapshot(code: string, imageUrl: string | Promise<string>) {
         setSnapshots((oldSnapshots) => [{code: code, imageUrl: imageUrl, figure: parseTikzCode(code)}].concat(oldSnapshots));
-        setDecomposing((oldDecomposing) => [false].concat(oldDecomposing));
+        setDecomposing(-1);
+    }
+
+    function loadCode(code: string) {
+        setEditorCode(code);
+        setDecomposing(-1);
+        setExploring(undefined);
     }
 
     function decompose(snapshot: Snapshot) {
@@ -89,12 +100,14 @@ export default function Home() {
             }
         });
         const subshotsContainer = <div className="block">
-            <div className="grid">
+            <div className="grid grid-cols-3 gap-4">
                 {subshots.map((subshot, idx) => <SnapshotView
                     key={idx}
                     snapshot={subshot}
                     load={(snapshot: Snapshot) => setEditorCode(snapshot.code)}
                     decompose={() => {}} // no-op
+                    explore={() => explore(subshot)}
+                    include={() => loadCode(editorCode + "\n" + subshot.code)}
                 />)}
             </div>
         </div>;
@@ -102,10 +115,38 @@ export default function Home() {
         return subshotsContainer;
     }
 
-    console.log("rendering Home");
+    function explore(snapshot: Snapshot) {
+        console.log("exploring ...", snapshot.figure, snapshot.figure.explore())
+        const subshots: Snapshot[] = snapshot.figure.explore().map((fig) => {
+            return {
+                code: fig.toCode(),
+                imageUrl: sendToQuickLaTeX(fig.toCode()),
+                figure: fig
+            }
+        });
+        console.log(subshots);
+        const subshotsContainer = <div className="block">
+            <div className="grid grid-cols-4 gap-4">
+                {subshots.map((subshot, idx) => <SnapshotView
+                    key={idx}
+                    snapshot={subshot}
+                    load={(snapshot: Snapshot) => setEditorCode(snapshot.code)}
+                    decompose={() => {}} // TODO: no-op
+                    explore={() => explore(subshot)}
+                    include={() => loadCode(editorFigure.compose(subshot.figure).toCode())}
+                />)}
+            </div>
+        </div>;
+
+        return subshotsContainer;
+    }
 
     return (
         <>
+            {Boolean(exploring) &&
+                <div className="">
+                    {exploring}
+                </div>}
             {/* <div className="grid grid-rows-2 items-left justify-items-left font-[family-name:var(--font-geist-sans)]"> */}
             <main className="grid flex flex-row">
                 <div className="font-mono flex border-1">
@@ -154,13 +195,12 @@ export default function Home() {
                             <SnapshotView
                                 key={idx}
                                 snapshot={snapshot}
-                                load={(snapshot: Snapshot) => {
-                                    setEditorCode(snapshot.code);
-                                    setDecomposing((oldDecompose) => oldDecompose.map(() => false))
-                                }}
-                                decompose={() => setDecomposing(decomposing.map((v, i) => (i === idx) ? true : v))}
+                                load={() => loadCode(snapshot.code)}
+                                decompose={() => setDecomposing(idx)}
+                                explore={() => setExploring(explore(snapshot))}
+                                include={() => loadCode(editorCode + "\n" + snapshot.code)}
                             />
-                            {decomposing[idx] && decompose(snapshot)}
+                            {decomposing === idx && decompose(snapshot)}
                         </>)}
                         {/* snapshot history goes here */}
                     </div>
