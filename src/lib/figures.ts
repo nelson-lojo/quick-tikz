@@ -224,30 +224,31 @@ ${this.elements.join("\n")}
 // function parses the tikz code and returns a Figure object
 export function parseTikzCode(code: string): Figure {
   const lines = code
-    .split(";")
+    .split("\n")
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
-  const commands: FigElement[] = lines.map((line) => {
-    // Extract command name (e.g., draw, filldraw, shade)
+
+  let figChain = [new Figure([], [], true)];
+  let tmpFig: Figure;
+  lines.forEach((line) => {
+    const attrMatch = line.match(/\[([^\]]+)\]/);
+    let attrParts: string[] = [];
+    let bodyString = ""; // ignored when entering/exiting a scope
     const cmdMatch = line.match(/^\\(\w+)/);
     const command = cmdMatch ? cmdMatch[1] : "";
-    let body = "";
-    // Parse attributes inside [ ... ]
-    const attrMatch = line.match(/\[([^\]]+)\]/);
-    let parts: string[] = [];
     if (attrMatch) {
-      const attrString = attrMatch[1];
-      parts = attrString
+      attrParts = attrMatch[1]
         .split(",")
         .map((s) => s.trim())
         .filter((s) => s);
-      body = line.slice(line.indexOf("]") + 1).trim();
+        bodyString = line.slice(line.indexOf("]") + 1).trim();
     } else {
       // No attribute brackets: body is after the command name
-      body = line.slice(line.indexOf(command) + command.length + 1).trim();
+      bodyString = line.slice(line.indexOf(command) + command.length + 1).trim();
     }
+    const body = bodyString;
 
-    const attributes: FigAttribute[] = parts.map((part) => {
+    const attributes: FigAttribute[] = attrParts.map((part) => {
       if (part.includes("=")) {
         const [rawName, rawValue] = part.split(/=(.+)/);
         const name = rawName.trim();
@@ -265,7 +266,23 @@ export function parseTikzCode(code: string): Figure {
       return new FigAttribute(name, part);
     });
 
-    return new FigElement(command, attributes, body);
+    if (line.includes("\\begin{scope}")) {
+      tmpFig = new Figure([], attributes, false);
+      figChain.at(-1)?.elements.push(tmpFig); //TODO
+      figChain.push(tmpFig);
+
+    } else if (line.includes("\\end{scope}")) {
+      figChain.pop();
+      if (figChain.length < 1) {
+        throw Error("Ran out of figure parents!!!");
+      }
+    } else {
+      figChain.at(-1)?.elements.push(new FigElement(command, attributes, body));
+    }
   });
-  return new Figure(commands);
+
+  if (figChain.length !== 1) {
+    throw Error("Figure inheritance not completed!");
+  }
+  return figChain[0];
 }
