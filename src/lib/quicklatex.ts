@@ -5,7 +5,7 @@ const IMPORTS = `\\usepackage{amsmath}
 \\usetikzlibrary{calc}`;
 
 export async function sendToQuickLaTeX(tex: string): Promise<string> {
-  tex = `\\begin{tikzpicture}\n${tex}\n\\end{tikzpicture}`
+//  tex = `\\begin{tikzpicture}\n${tex}\n\\end{tikzpicture}`
   console.log("Sending to QuickLaTeX:", tex);
   const params = {
     formula: tex,

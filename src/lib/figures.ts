@@ -1,44 +1,53 @@
 const COLORS = [
-  "red",
-  "green",
-  "blue",
-  "yellow",
-  "cyan",
-  "magenta",
-  "black",
-  "white",
-  "gray",
-  "orange",
-  "purple",
-  "brown",
-  "pink",
-  "teal",
-  "violet",
-  "lime",
-  "olive",
-  "navy",
-  "maroon",
-  "silver",
-  "gold",
+    "black",
+    "blue",
+    "brown",
+    "cyan",
+    "darkgray",
+    "gray",
+    "green",
+    "lightgray",
+    "lime",
+    "magenta",
+    "olive",
+    "orange",
+    "pink",
+    "purple",
+    "red",
+    "teal",
+    "violet",
+    "white",
+    "yellow"
 ];
 
 const VARIABLE_ATTRIBUTES = {
-  "line width": ["0.1pt", "0.2pt", "0.4pt", "0.6pt", "0.8pt", "1pt", "1.2pt", "1.6pt", "2pt"],
-  _solid: [
-    "solid",
-    "dashed",
-    "dotted",
-    "dash dotted",
-    "loosely dotted",
-    "loosely dashdotted",
-    "densely dashed",
-    "densely dotted",
-    "densely dashdotted",
-  ],
-  // _lineWidth : [...] // TODO: @chris
-  _color: COLORS,
-  color: COLORS,
-  "inner color": COLORS,
+    "line width": ["0.1pt", "0.2pt", "0.4pt", "0.6pt", "0.8pt", "1pt", "1.2pt", "1.6pt", "2pt"],
+    _lineStyle: [
+        "solid",
+        "dotted",
+        "densely dotted",
+        "loosely dotted",
+        "dashed",
+        "densely dashed",
+        "loosely dashed",
+        "dashdotted",
+        "densely dashdotted",
+        "loosely dashdotted",
+        "dashdotdotted",
+        "densely dashdotdotted",
+        "loosely dashdotdotted"
+    ],
+    _lineWidth: ["ultra thin", "very thin", "thin", "semi thick", "thick", "very thick", "ultra thick"],
+    _color: COLORS,
+    color: COLORS,
+    "inner color": COLORS,
+    "outer color": COLORS,
+    "top color": COLORS,
+    "bottom color": COLORS,
+    "left color": COLORS,
+    "right color": COLORS,
+    "fill": COLORS,
+    "draw": COLORS,
 };
 
 // type ExplorableCmd = keyof typeof VARIABLE_ATTRIBUTES;
@@ -94,6 +103,9 @@ class FigElement {
     this.body = body;
   }
   toString(): string {
+    if (this.attributes.length === 0) {
+      return `\\${this.command} ${this.body};`;
+    }
     return `\\${this.command}[${this.attributes.join(", ")}] ${this.body};`;
   }
   debugString(): string {
@@ -113,28 +125,49 @@ class FigElement {
 }
 
 export class Figure {
-  elements: (FigElement | Figure)[];
-  attributes: FigAttribute[];
-  isRoot: boolean;
-  constructor(elements: (FigElement | Figure)[], attributes: FigAttribute[], isRoot: boolean) {
-    this.elements = elements;
-    this.attributes = attributes;
-    this.isRoot = isRoot;
-  }
-  debugString(): string {
-    return JSON.stringify(
-      {
-        elements: this.elements.map((elem) => JSON.parse(elem.toString())),
-      },
-      null,
-      2
-    );
-  }
+    elements: (FigElement | Figure)[];
+    attributes: FigAttribute[];
+    isRoot: boolean;
+
+    constructor(elements: (FigElement | Figure)[], attributes: FigAttribute[], isRoot: boolean) {
+        this.elements = elements;
+        this.attributes = attributes;
+        this.isRoot = isRoot;
+    }
+
+    debugString(): string {
+        return JSON.stringify(
+            {
+                elements: this.elements.map((elem) => JSON.parse(elem.toString())),
+            },
+            null,
+            2
+        );
+    }
+
   toString(): string {
+    if (this.elements.length === 0) {
+      return "";
+    }
+    return this._toStringWithIndent(0);
+  }
+
+  _toStringWithIndent(indentLevel: number): string {
+    const indent = "\t".repeat(indentLevel);
+    const childIndent = "\t".repeat(indentLevel + 1);
+
     const envName = this.isRoot ? "tikzpicture" : "scope";
-    return `\\begin{${envName}}[${this.attributes.join(", ")}]
-${this.elements.join("\n")}
-\\end{${envName}}`;
+    const attributeStr = this.attributes.length > 0 ? `[${this.attributes.join(", ")}]` : "";
+
+    const elementsStr = this.elements.map(el => {
+      if (el instanceof Figure) {
+        return el._toStringWithIndent(indentLevel + 1);
+      } else {
+        return `${childIndent}${el.toString()}`;
+      }
+    }).join("\n");
+
+    return `${indent}\\begin{${envName}}${attributeStr}\n${elementsStr}\n${indent}\\end{${envName}}`;
   }
   clone(): Figure {
     return new Figure(
@@ -152,21 +185,21 @@ ${this.elements.join("\n")}
       return new Figure([...this.elements, other], [], true);
     }
 
-    return new Figure(
-      [...this.elements, ...other.elements],
-      [...this.attributes, ...other.attributes],
-      true
-    );
-  }
+        return new Figure(
+            [...this.elements, ...other.elements],
+            [...this.attributes, ...other.attributes],
+            true
+        );
+    }
 
-  decompose(): Figure[] {
-    return this.elements.map(
-      (el) =>
-        el instanceof Figure
-        ? new Figure(el.elements, el.attributes, true)
-        : new Figure([el], [], true)
-    );
-  }
+    decompose(): Figure[] {
+        return this.elements.map(
+            (el) =>
+                el instanceof Figure
+                    ? new Figure(el.elements, el.attributes, true)
+                    : new Figure([el], [], true)
+        );
+    }
 
   explore(breadth: number = 3, attributesToVary: number = 2): Figure[] {
     const allVariations = this.elements.flatMap((el, elIndex) =>
@@ -201,17 +234,17 @@ ${this.elements.join("\n")}
     return figures;
   }
 
-  static combine(figures: Figure[]): Figure {
-    return figures.reduce((acc, fig) => acc.compose(fig), new Figure([], [], true));
-  }
+    static combine(figures: Figure[]): Figure {
+        return figures.reduce((acc, fig) => acc.compose(fig), new Figure([], [], true));
+    }
 }
 
 // function parses the tikz code and returns a Figure object
 export function parseTikzCode(code: string): Figure {
-  const lines = code
-    .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
+    const lines = code
+        .split(";")
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0);
 
   let figChain = [new Figure([], [], true)];
   let tmpFig: Figure;
@@ -233,24 +266,24 @@ export function parseTikzCode(code: string): Figure {
     }
     const body = bodyString;
 
-    const attributes: FigAttribute[] = attrParts.map((part) => {
-      if (part.includes("=")) {
-        const [rawName, rawValue] = part.split(/=(.+)/);
-        const name = rawName.trim();
-        const value = rawValue.trim();
-        return new FigAttribute(name, value);
-      }
+        const attributes: FigAttribute[] = attrParts.map((part) => {
+            if (part.includes("=")) {
+                const [rawName, rawValue] = part.split(/=(.+)/);
+                const name = rawName.trim();
+                const value = rawValue.trim();
+                return new FigAttribute(name, value);
+            }
 
-      part = part.trim();
+            part = part.trim();
 
       const attrVariants = Object.entries(VARIABLE_ATTRIBUTES).find(([fieldName, values]) =>
         values.includes(part)
       );
       if (attrVariants === undefined) return new FigAttribute("", part);
 
-      const name: string = attrVariants[0];
-      return new FigAttribute(name, part);
-    });
+            const name: string = attrVariants[0];
+            return new FigAttribute(name, part);
+        });
 
     if (line.includes("\\begin{scope}")) {
       tmpFig = new Figure([], attributes, false);
@@ -266,8 +299,8 @@ export function parseTikzCode(code: string): Figure {
     }
   });
 
-  if (figChain.length !== 1) {
-    throw Error("Figure inheritance not completed!");
-  }
-  return figChain[0];
+    if (figChain.length !== 1) {
+        throw Error("Figure inheritance not completed!");
+    }
+    return figChain[0];
 }
