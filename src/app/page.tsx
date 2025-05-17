@@ -1,10 +1,9 @@
 'use client';
+import {ReactElement, useEffect, useState, useRef, useCallback} from "react";
+import AceEditor from "react-ace";
 import Preview from "@/components/LivePreview";
 import { Figure, parseTikzCode } from "@/lib/figures";
 import { sendToQuickLaTeX } from "@/lib/quicklatex";
-import {ReactElement, useEffect, useState, useRef, useCallback} from "react";
-// import Image from "next/image";
-import AceEditor from "react-ace";
 import { useAuth } from "@/contexts/AuthContext";
 import Modal from "@/components/Modal";
 import { exportCode } from "@/lib/export";
@@ -116,8 +115,8 @@ export default function Home() {
         setDecomposing(-1);
     }
 
-    function includeCode(snapshot: Snapshot) {
-        loadCode(parseTikzCode(editorCode).compose(snapshot.figure, true).toString());
+    function includeCode(snapshot: Snapshot, heirarchical: boolean = true) {
+        loadCode(parseTikzCode(editorCode).compose(snapshot.figure, heirarchical).toString());
         setModalContent(null);
     }
 
