@@ -269,54 +269,6 @@ export default function Home() {
                                     />
                                 </div>
                             ))}
-                            {/* Popup menu */}
-                            {popup && (
-                                <div
-                                    ref={popupRef}
-                                    className="fixed z-50 bg-white border rounded shadow p-2 text-black min-w-[120px]"
-                                    style={{ left: popup.x, top: popup.y }}
-                                >
-                                    <button 
-                                        className="block w-full text-left px-2 py-1 hover:bg-gray-200"
-                                        onClick={() => {
-                                            const snapshot = snapshots[popup.idx];
-                                            loadCode(snapshot.code);
-                                            setPopup(null);
-                                        }}
-                                    >
-                                        Load
-                                    </button>
-                                    <button 
-                                        className="block w-full text-left px-2 py-1 hover:bg-gray-200"
-                                        onClick={() => {
-                                            const snapshot = snapshots[popup.idx];
-                                            setDecomposing(popup.idx);
-                                            setPopup(null);
-                                        }}
-                                    >
-                                        Decompose
-                                    </button>
-                                    <button 
-                                        className="block w-full text-left px-2 py-1 hover:bg-gray-200"
-                                        onClick={() => {
-                                            const snapshot = snapshots[popup.idx];
-                                            explore(snapshot);
-                                            setPopup(null);
-                                        }}
-                                    >
-                                        Explore
-                                    </button>
-                                    <button 
-                                        className="block w-full text-left px-2 py-1 hover:bg-gray-200"
-                                        onClick={() => {
-                                            const snapshot = snapshots[popup.idx];
-                                            includeCode(snapshot);
-                                        }}
-                                    >
-                                        Include
-                                    </button>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>
@@ -338,6 +290,53 @@ export default function Home() {
             >
                 {modalContent?.content}
             </Modal>
+            {popup && (
+                <div
+                    ref={popupRef}
+                    className="fixed z-50 bg-white border rounded shadow p-2 text-black min-w-[120px]"
+                    style={{ left: popup.x, top: popup.y }}
+                >
+                    <button 
+                        className="block w-full text-left px-2 py-1 hover:bg-gray-200"
+                        onClick={() => {
+                            const snapshot = snapshots[popup.idx];
+                            loadCode(snapshot.code);
+                            setPopup(null);
+                        }}
+                    >
+                        Load
+                    </button>
+                    <button 
+                        className="block w-full text-left px-2 py-1 hover:bg-gray-200"
+                        onClick={() => {
+                            const snapshot = snapshots[popup.idx];
+                            setDecomposing(popup.idx);
+                            setPopup(null);
+                        }}
+                    >
+                        Decompose
+                    </button>
+                    <button 
+                        className="block w-full text-left px-2 py-1 hover:bg-gray-200"
+                        onClick={() => {
+                            const snapshot = snapshots[popup.idx];
+                            explore(snapshot);
+                            setPopup(null);
+                        }}
+                    >
+                        Explore
+                    </button>
+                    <button 
+                        className="block w-full text-left px-2 py-1 hover:bg-gray-200"
+                        onClick={() => {
+                            const snapshot = snapshots[popup.idx];
+                            includeCode(snapshot);
+                        }}
+                    >
+                        Include
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
