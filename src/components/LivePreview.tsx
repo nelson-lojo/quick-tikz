@@ -25,7 +25,7 @@ export default function Preview({code, save}: {
             setImgURL(undefined);
 
             // Send to QuickLaTeX and update image when done
-            sendToQuickLaTeX(parseTikzCode(code).toString())
+            sendToQuickLaTeX(code)
                 .then(imageUrl => {
                     console.log("Image URL:", imageUrl);
                     // Set the image tag with the received URL

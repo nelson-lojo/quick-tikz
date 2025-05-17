@@ -53,7 +53,7 @@ function SnapshotView({snapshot, load, decompose, explore, include, onContextMen
         <div className="w-full h-full p-1">
             {(typeof(snapshot.imageUrl) == "string")
                 ? <img src={snapshot.imageUrl} className="w-full h-full object-contain" />
-                : <AsyncImg src={snapshot.imageUrl} alt={"/file.png"} />
+                : <AsyncImg src={snapshot.imageUrl} alt={"/file.svg"} />
             }
         </div>
     </div>;
@@ -123,8 +123,8 @@ export default function Home() {
         console.log("exploring ...", snapshot.figure, snapshot.figure.explore())
         const subshots: Snapshot[] = snapshot.figure.explore().map((fig) => {
             return {
-                code: fig.toCode(),
-                imageUrl: sendToQuickLaTeX(fig.toCode()),
+                code: fig.toString(),
+                imageUrl: sendToQuickLaTeX(fig.toString()),
                 figure: fig
             }
         });
@@ -140,7 +140,7 @@ export default function Home() {
                     decompose={() => {}} // TODO: no-op
                     explore={() => {}} // Disable recursive exploration
                     include={() => {
-                        loadCode(editorFigure.compose(subshot.figure).toCode());
+                        loadCode(editorFigure.compose(subshot.figure).toString());
                         setModalContent(null);
                     }}
                     onContextMenu={e => {
@@ -161,8 +161,8 @@ export default function Home() {
         console.log("decomposing ...")
         const subshots: Snapshot[] = snapshot.figure.decompose().map((fig) => {
             return {
-                code: fig.toCode(),
-                imageUrl: sendToQuickLaTeX(fig.toCode()),
+                code: fig.toString(),
+                imageUrl: sendToQuickLaTeX(fig.toString()),
                 figure: fig
             }
         });

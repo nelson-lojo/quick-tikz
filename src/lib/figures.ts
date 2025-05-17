@@ -1,3 +1,5 @@
+const indent = (s: string, indentString = '  ') => s.replace(/^/gm, indentString);
+
 const COLORS = [
     "black",
     "blue",
@@ -61,7 +63,7 @@ class FigAttribute {
     this.value = value;
   }
   debugString(): string {
-    return JSON.stringify({ name: this.name, value: this.value });
+    return `{name: ${this.name}, value: ${this.value}}`;
   }
   toString(): string {
     return this.name.charAt(0) == "_" ? `${this.value}` : `${this.name}=${this.value}`;
@@ -109,11 +111,7 @@ class FigElement {
     return `\\${this.command}[${this.attributes.join(", ")}] ${this.body};`;
   }
   debugString(): string {
-    return JSON.stringify({
-      command: this.command,
-      attributes: this.attributes.map((attr) => JSON.parse(attr.toString())),
-      body: this.body,
-    });
+    return `{command: ${this.command}, attributes: [${this.attributes.map(attr => attr.debugString()).join(", ")}], body: ${this.body}}`;
   }
   clone(): FigElement {
     return new FigElement(
@@ -136,39 +134,102 @@ export class Figure {
     }
 
     debugString(): string {
-        return JSON.stringify(
-            {
-                elements: this.elements.map((elem) => JSON.parse(elem.toString())),
-            },
-            null,
-            2
-        );
+        return `{elements: [${this.elements.map(elem => 
+      elem instanceof Figure ? elem.debugString() : elem.debugString()
+    ).join(", ")}], attributes: [${this.attributes.map(attr => attr.debugString()).join(", ")}], isRoot: ${this.isRoot}}`;
     }
+
+    
 
   toString(): string {
-    if (this.elements.length === 0) {
-      return "";
-    }
-    return this._toStringWithIndent(0);
-  }
-
-  _toStringWithIndent(indentLevel: number): string {
-    const indent = "\t".repeat(indentLevel);
-    const childIndent = "\t".repeat(indentLevel + 1);
-
-    const envName = this.isRoot ? "tikzpicture" : "scope";
     const attributeStr = this.attributes.length > 0 ? `[${this.attributes.join(", ")}]` : "";
-
-    const elementsStr = this.elements.map(el => {
-      if (el instanceof Figure) {
-        return el._toStringWithIndent(indentLevel + 1);
-      } else {
-        return `${childIndent}${el.toString()}`;
-      }
-    }).join("\n");
-
-    return `${indent}\\begin{${envName}}${attributeStr}\n${elementsStr}\n${indent}\\end{${envName}}`;
+    if (this.isRoot) {
+      return this.elements.join("\n");
+    }
+    return `\\begin{scope}${attributeStr}\n${indent(this.elements.join("\n"))}\n\\end{scope}`;
   }
+
+
+
+
+      //   if (this.isRoot) {
+  //     return `${elementsStr}`;
+  //   }
+  //   return `${indent}\\begin{scope}${attributeStr}\n${elementsStr}\n${indent}\\end{scope}`;
+
+  // toString(): string {
+  //   if (this.elements.length === 0) {
+  //     return "";
+  //   }
+  //   return this._toStringWithIndent(0);
+  // }
+
+
+  // _toStringWithIndent(indentLevel: number): string {
+  //   const indent = "\t".repeat(indentLevel);
+  //   const childIndent = "\t".repeat(indentLevel + 1);
+
+  //   // const envName = this.isRoot ? "tikzpicture" : "scope";
+  //   const attributeStr = this.attributes.length > 0 ? `[${this.attributes.join(", ")}]` : "";
+
+  //   const elementsStr = this.elements.map(el => {
+  //     if (el instanceof Figure) {
+  //       return el._toStringWithIndent(indentLevel + 1);
+  //     } else {
+  //       return `${childIndent}${el.toString()}`;
+  //     }
+  //   }).join("\n");
+  //   // dont add the tikzpicture environment if isRoot is true
+  //   if (this.isRoot) {
+  //     return `${elementsStr}`;
+  //   }
+  //   return `${indent}\\begin{scope}${attributeStr}\n${elementsStr}\n${indent}\\end{scope}`;
+  // }
+
+      // add the tikzpicture environment if isRoot is false
+// //toString(): string {
+//     if (this.isRoot) return this.elements.join("\n");
+
+//     return `\\begin{scope}[${this.attributes.join(", ")}]
+// ${this.elements.join("\n")}
+// \\end{scope}`;
+//   }
+  
+
+  // toEditorCode is like toString but without the tikzpicture environment if isRoot is true
+  // toEditorCode(): string {
+  //   if (this.elements.length === 0) {
+  //     return "";
+  //   }
+  //   if (this.isRoot) {
+  //     return this.elements
+  //       .map((el) => {
+  //         if (el instanceof Figure) {
+  //           return el._toEditorCodeWithIndent(0);
+  //         } else {
+  //           return el.toString();
+  //         }
+  //       }
+  //       )
+  //       .join("\n");
+  //   }
+  //   return this._toStringWithIndent(0);
+  // }
+  // _toEditorCodeWithIndent(indentLevel: number): string {
+  //   const indent = "\t".repeat(indentLevel);
+  //   const childIndent = "\t".repeat(indentLevel + 1);
+  //   const attributeStr = this.attributes.length > 0 ? `[${this.attributes.join(", ")}]` : "";
+  //   const elementsStr = this.elements.map((el) => {
+  //     if (el instanceof Figure) {
+  //       return el._toEditorCodeWithIndent(indentLevel + 1);
+  //     } else {
+  //       return `${childIndent}${el.toString()}`;
+  //     }
+  //   }
+  //   ).join("\n");
+  //   return `${indent}\\begin{scope}${attributeStr}\n${elementsStr}\n${indent}\\end{scope}`;
+  // }
+  
   clone(): Figure {
     return new Figure(
       this.elements.map((e) => e.clone()),
@@ -242,7 +303,7 @@ export class Figure {
 // function parses the tikz code and returns a Figure object
 export function parseTikzCode(code: string): Figure {
     const lines = code
-        .split(";")
+        .split(";") // should be ; ?
         .map((l) => l.trim())
         .filter((l) => l.length > 0);
 
