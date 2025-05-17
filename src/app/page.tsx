@@ -53,7 +53,7 @@ function SnapshotView({snapshot, load, decompose, explore, include, onContextMen
         <div className="w-full h-full p-1">
             {(typeof(snapshot.imageUrl) == "string")
                 ? <img src={snapshot.imageUrl} className="w-full h-full object-contain" />
-                : <AsyncImg src={snapshot.imageUrl} alt={"/file.svg"} />
+                : <AsyncImg src={snapshot.imageUrl} alt={"Loading ..."} />
             }
         </div>
     </div>;
