@@ -263,7 +263,8 @@ export class Figure {
     }
 
   explore(breadth: number = 3, attributesToVary: number = 2): Figure[] {
-    const allVariations = this.elements.flatMap((el, elIndex) =>
+    type Transform = ((f: Figure) => Figure[]);
+    const allVariations: Transform[] = this.elements.flatMap((el, elIndex) =>
       el.attributes
         .filter((attr) => attr.isExplorable())
         .map((attr, attrIndex) => {
@@ -279,16 +280,17 @@ export class Figure {
             );
         })
     );
+    if (allVariations.length == 0) return [this.clone()];
 
-    const selectedVariations = [];
-    for (let idx = 0; idx < attributesToVary; idx++) {
+    const selectedVariations: Transform[] = [];
+    for (let idx = 0; idx < Math.min(attributesToVary, allVariations.length); idx++) {
       selectedVariations.push(
         allVariations.splice(Math.floor(Math.random() * allVariations.length), 1)[0]
       );
     }
 
     const figures = selectedVariations.reduce(
-      (prevFigs, currVariation) => prevFigs.flatMap((f) => currVariation(f)),
+      (prevFigs, currVariation) => prevFigs.flatMap(currVariation),
       [this.clone()]
     );
 
