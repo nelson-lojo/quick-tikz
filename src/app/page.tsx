@@ -2,10 +2,11 @@
 import Preview from "@/components/LivePreview";
 import { Figure, parseTikzCode } from "@/lib/figures";
 import { sendToQuickLaTeX } from "@/lib/quicklatex";
-import {ReactElement, useEffect, useState} from "react";
+import {ReactElement, useEffect, useState, useRef, useCallback} from "react";
 // import Image from "next/image";
 import AceEditor from "react-ace";
 import { useAuth } from "@/contexts/AuthContext";
+import Modal from "@/components/Modal";
 
 type Snapshot = {
     code: string;
@@ -40,18 +41,21 @@ function AsyncImg({src, alt}: {src : Promise<string>, alt: string})  {
   return <img src={srcString} alt={alt} />
 }
 
-function SnapshotView({snapshot, load, decompose, explore, include}: {
+function SnapshotView({snapshot, load, decompose, explore, include, onContextMenu}: {
     snapshot: Snapshot,
     load: (snapshot: Snapshot) => void,
     decompose: (snapshot: Snapshot) => void,
     explore: (snapshot: Snapshot) => void,
     include: (snapshot: Snapshot) => void,
+    onContextMenu: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void,
 }) {
-    return <div className="aspect-3/2 border-2" onClick={() => decompose(snapshot)} onDoubleClick={() => load(snapshot)} onContextMenu={() => explore(snapshot)}> {/* TODO: also include `include` */}
-        {(typeof(snapshot.imageUrl) == "string")
-            ? <img src={snapshot.imageUrl} className="w-full h-full object-scale-down object-fit" />
-            : <AsyncImg src={snapshot.imageUrl} alt={"/file.png"} />
-        }
+    return <div className="w-full h-full border-2 flex items-center justify-center" onClick={() => decompose(snapshot)} onDoubleClick={() => load(snapshot)} onContextMenu={onContextMenu}>
+        <div className="w-full h-full p-1">
+            {(typeof(snapshot.imageUrl) == "string")
+                ? <img src={snapshot.imageUrl} className="w-full h-full object-contain" />
+                : <AsyncImg src={snapshot.imageUrl} alt={"/file.png"} />
+            }
+        </div>
     </div>;
 }
 
@@ -64,8 +68,18 @@ export default function Home() {
     const [renderedCode, setRenderedCode] = useState('');
     const [editorCode, setEditorCode] = useState('');
     const [renderTimeout, setRenderTimeout] = useState<NodeJS.Timeout>();
-
     const editorFigure = parseTikzCode(editorCode);
+    // Popup state
+    const [popup, setPopup] = useState<{ idx: number, x: number, y: number } | null>(null);
+    const popupRef = useRef<HTMLDivElement>(null);
+    const [modalContent, setModalContent] = useState<{ title: string, content: ReactElement } | null>(null);
+
+    // Add effect handler for decomposition
+    useEffect(() => {
+        if (decomposing >= 0 && decomposing < snapshots.length) {
+            decompose(snapshots[decomposing]);
+        }
+    }, [decomposing, snapshots]);
 
     useEffect(() => {
         console.log('here is the current model value:', editorCode);
@@ -77,6 +91,20 @@ export default function Home() {
             }, 500)
         );
     }, [editorCode])
+
+    useEffect(() => {
+        function handleClick(e: MouseEvent) {
+            if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+                setPopup(null);
+            }
+        }
+        if (popup) {
+            document.addEventListener('mousedown', handleClick);
+        } else {
+            document.removeEventListener('mousedown', handleClick);
+        }
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, [popup]);
 
     /* TODO: add functionality to transition from dark to light mode */
 
@@ -91,12 +119,50 @@ export default function Home() {
         setExploring(undefined);
     }
 
-    function decompose(snapshot: Snapshot) {
+    const explore = useCallback((snapshot: Snapshot): void => {
+        console.log("exploring ...", snapshot.figure, snapshot.figure.explore())
+        const subshots: Snapshot[] = snapshot.figure.explore().map((fig) => {
+            return {
+                code: fig.toCode(),
+                imageUrl: sendToQuickLaTeX(fig.toCode()),
+                figure: fig
+            }
+        });
+        const subshotsContainer = <div className="block">
+            <div className="grid grid-cols-4 gap-4">
+                {subshots.map((subshot, idx) => <SnapshotView
+                    key={idx}
+                    snapshot={subshot}
+                    load={(snapshot: Snapshot) => {
+                        setEditorCode(snapshot.code);
+                        setModalContent(null);
+                    }}
+                    decompose={() => {}} // TODO: no-op
+                    explore={() => {}} // Disable recursive exploration
+                    include={() => {
+                        loadCode(editorFigure.compose(subshot.figure).toCode());
+                        setModalContent(null);
+                    }}
+                    onContextMenu={e => {
+                        e.preventDefault();
+                        setPopup({ idx, x: e.clientX, y: e.clientY });
+                    }}
+                />)}
+            </div>
+        </div>;
+
+        setModalContent({
+            title: "Explored Variations",
+            content: subshotsContainer
+        });
+    }, [editorFigure, loadCode]);
+
+    const decompose = useCallback((snapshot: Snapshot): void => {
         console.log("decomposing ...")
         const subshots: Snapshot[] = snapshot.figure.decompose().map((fig) => {
             return {
-                code: fig.toString(),
-                imageUrl: sendToQuickLaTeX(fig.toString()),
+                code: fig.toCode(),
+                imageUrl: sendToQuickLaTeX(fig.toCode()),
                 figure: fig
             }
         });
@@ -105,42 +171,32 @@ export default function Home() {
                 {subshots.map((subshot, idx) => <SnapshotView
                     key={idx}
                     snapshot={subshot}
-                    load={(snapshot: Snapshot) => setEditorCode(snapshot.code)}
+                    load={(snapshot: Snapshot) => {
+                        setEditorCode(snapshot.code);
+                        setModalContent(null);
+                    }}
                     decompose={() => {}} // no-op
-                    explore={() => explore(subshot)}
-                    include={() => loadCode(editorCode + "\n" + subshot.code)}
+                    explore={() => {
+                        explore(subshot);
+                    }}
+                    include={() => {
+                        loadCode(editorCode + "\n" + subshot.code);
+                        setModalContent(null);
+                    }}
+                    onContextMenu={e => {
+                        e.preventDefault();
+                        setPopup({ idx, x: e.clientX, y: e.clientY });
+                    }}
                 />)}
             </div>
         </div>;
 
-        return subshotsContainer;
-    }
-
-    function explore(snapshot: Snapshot) {
-        console.log("exploring ...", snapshot.figure, snapshot.figure.explore())
-        const subshots: Snapshot[] = snapshot.figure.explore().map((fig) => {
-            return {
-                code: fig.toString(),
-                imageUrl: sendToQuickLaTeX(fig.toString()),
-                figure: fig
-            }
+        setModalContent({
+            title: "Decomposed Components",
+            content: subshotsContainer
         });
-        console.log(subshots);
-        const subshotsContainer = <div className="block">
-            <div className="grid grid-cols-4 gap-4">
-                {subshots.map((subshot, idx) => <SnapshotView
-                    key={idx}
-                    snapshot={subshot}
-                    load={(snapshot: Snapshot) => setEditorCode(snapshot.code)}
-                    decompose={() => {}} // TODO: no-op
-                    explore={() => explore(subshot)}
-                    include={() => loadCode(editorFigure.compose(subshot.figure).toString())}
-                />)}
-            </div>
-        </div>;
-
-        return subshotsContainer;
-    }
+        setDecomposing(-1); // Reset decomposing state after showing modal
+    }, [editorCode, explore, loadCode, setModalContent]);
 
     return (
         <div className="h-screen flex flex-col">
@@ -165,7 +221,7 @@ export default function Home() {
                           className="hover:opacity-80"
                         >
                           <div className="flex items-center">
-                            <img src="/export.svg" className="h-5 invert" />
+                            <img src="/share.png" className="h-5 invert" />
                           </div>
                         </button>
                         {user && (
@@ -181,8 +237,8 @@ export default function Home() {
                 </div>
             </header>
             <main className="flex-1 flex gap-2 p-2 overflow-hidden">
-                <div className="w-2/3 flex flex-col h-full min-h-0 relative overflow-hidden">
-                    <div className="flex-1 min-h-0 w-full">
+                <div className="w-2/3 flex flex-col h-full min-h-0 relative overflow-hidden border-r">
+                    <div className="flex-1 min-h-0 w-full border-b">
                         <AceEditor
                             className="h-full w-full font-mono resize-none border-1"
                             name="code-editor"
@@ -199,18 +255,74 @@ export default function Home() {
                         />
                     </div>
                 </div>
-                <div className="w-1/3 border-1 overflow-hidden">
-                    <div className="grid grid-cols-3 grid-rows-2 gap-2 p-2 h-full">
-                        {snapshots.slice(0, 6).map((snapshot, idx) => <> <SnapshotView
-                                key={idx}
-                                snapshot={snapshot}
-                                load={() => loadCode(snapshot.code)}
-                                decompose={() => setDecomposing(idx)}
-                                explore={() => setExploring(explore(snapshot))}
-                                include={() => loadCode(editorCode + "\n" + snapshot.code)}
-                            />
-                        {decomposing === idx && decompose(snapshot)}
-                        </>)}
+                <div className="w-1/3 border-1 overflow-hidden flex flex-col h-full">
+                    <div className="h-full overflow-y-auto p-2">
+                        <div className="grid grid-cols-3 gap-2">
+                            {snapshots.map((snapshot, idx) => (
+                                <div key={idx} className="aspect-square">
+                                    <SnapshotView
+                                        snapshot={snapshot}
+                                        load={(snapshot: Snapshot) => setEditorCode(snapshot.code)}
+                                        decompose={() => {}}
+                                        explore={() => {}}
+                                        include={() => {}}
+                                        onContextMenu={e => {
+                                            e.preventDefault();
+                                            setPopup({ idx, x: e.clientX, y: e.clientY });
+                                        }}
+                                    />
+                                </div>
+                            ))}
+                            {/* Popup menu */}
+                            {popup && (
+                                <div
+                                    ref={popupRef}
+                                    className="fixed z-50 bg-white border rounded shadow p-2 text-black min-w-[120px]"
+                                    style={{ left: popup.x, top: popup.y }}
+                                >
+                                    <button 
+                                        className="block w-full text-left px-2 py-1 hover:bg-gray-200"
+                                        onClick={() => {
+                                            const snapshot = snapshots[popup.idx];
+                                            loadCode(snapshot.code);
+                                            setPopup(null);
+                                        }}
+                                    >
+                                        Load
+                                    </button>
+                                    <button 
+                                        className="block w-full text-left px-2 py-1 hover:bg-gray-200"
+                                        onClick={() => {
+                                            const snapshot = snapshots[popup.idx];
+                                            setDecomposing(popup.idx);
+                                            setPopup(null);
+                                        }}
+                                    >
+                                        Decompose
+                                    </button>
+                                    <button 
+                                        className="block w-full text-left px-2 py-1 hover:bg-gray-200"
+                                        onClick={() => {
+                                            const snapshot = snapshots[popup.idx];
+                                            explore(snapshot);
+                                            setPopup(null);
+                                        }}
+                                    >
+                                        Explore
+                                    </button>
+                                    <button 
+                                        className="block w-full text-left px-2 py-1 hover:bg-gray-200"
+                                        onClick={() => {
+                                            const snapshot = snapshots[popup.idx];
+                                            loadCode(editorCode + "\n" + snapshot.code);
+                                            setPopup(null);
+                                        }}
+                                    >
+                                        Include
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </main>
@@ -222,6 +334,15 @@ export default function Home() {
                     Examples
                 </a>
             </footer>
+            
+            {/* Add Modal */}
+            <Modal
+                isOpen={modalContent !== null}
+                onClose={() => setModalContent(null)}
+                title={modalContent?.title || ""}
+            >
+                {modalContent?.content}
+            </Modal>
         </div>
     );
 }
