@@ -1,5 +1,6 @@
 import { sendToQuickLaTeX } from "@/lib/quicklatex";
 import { useEffect, useState } from "react";
+import { Figure, parseTikzCode } from "@/lib/figures";
 
 
 export default function Preview({code, save}: {
@@ -24,7 +25,7 @@ export default function Preview({code, save}: {
             setImgURL(undefined);
 
             // Send to QuickLaTeX and update image when done
-            sendToQuickLaTeX(code)
+            sendToQuickLaTeX(parseTikzCode(code).toString())
                 .then(imageUrl => {
                     console.log("Image URL:", imageUrl);
                     // Set the image tag with the received URL

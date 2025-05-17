@@ -95,8 +95,8 @@ export default function Home() {
         console.log("decomposing ...")
         const subshots: Snapshot[] = snapshot.figure.decompose().map((fig) => {
             return {
-                code: fig.toCode(),
-                imageUrl: sendToQuickLaTeX(fig.toCode()),
+                code: fig.toString(),
+                imageUrl: sendToQuickLaTeX(fig.toString()),
                 figure: fig
             }
         });
@@ -120,8 +120,8 @@ export default function Home() {
         console.log("exploring ...", snapshot.figure, snapshot.figure.explore())
         const subshots: Snapshot[] = snapshot.figure.explore().map((fig) => {
             return {
-                code: fig.toCode(),
-                imageUrl: sendToQuickLaTeX(fig.toCode()),
+                code: fig.toString(),
+                imageUrl: sendToQuickLaTeX(fig.toString()),
                 figure: fig
             }
         });
@@ -134,7 +134,7 @@ export default function Home() {
                     load={(snapshot: Snapshot) => setEditorCode(snapshot.code)}
                     decompose={() => {}} // TODO: no-op
                     explore={() => explore(subshot)}
-                    include={() => loadCode(editorFigure.compose(subshot.figure).toCode())}
+                    include={() => loadCode(editorFigure.compose(subshot.figure).toString())}
                 />)}
             </div>
         </div>;
