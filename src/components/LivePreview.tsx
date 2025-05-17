@@ -12,7 +12,7 @@ export default function Preview({code, save}: {
         <div>Rendering TikZ...</div> :
         (imgUrl === "/file.svg"
             ? <img src={imgUrl} className="h-3/4 w-3/4 object-contain mx-auto" />
-            : <img src={imgUrl} className="w-full h-full object-fit" />
+            : <img src={imgUrl} className="max-w-full max-h-full object-contain" />
         );
 
 
@@ -52,14 +52,16 @@ export default function Preview({code, save}: {
         >
             <div className="flex justify-end items-center gap-2 w-full px-2 pt-2">
                 <button onClick={() => exportCode(code)}>
-                    <img src="/export.svg" className="h-5"/>
+                    <img src="/share.png" className="h-5"/>
                 </button>
                 <button onClick={() => saveWrapper()}>
-                    <img src="/window.svg" className="h-5"/>
+                    <img src="/screenshot.png" className="h-5"/>
                 </button>
             </div>
             <div className="flex-1 min-h-0 flex items-center justify-center w-full overflow-hidden">
-                {imgTag}
+                <div className="w-full h-full flex items-center justify-center p-4">
+                    {imgTag}
+                </div>
             </div>
         </div>;
 }
