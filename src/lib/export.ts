@@ -15,12 +15,13 @@
 // }
 
 // function to export the code to the clipboard
-function exportCode(code: string | undefined) {
+export function exportCode(code: string | undefined) {
     if (code) {
         const tikzCode = `\\begin{tikzpicture}\n${code}\n\\end{tikzpicture}`;
         navigator.clipboard.writeText(tikzCode)
             .then(() => {
                 console.log('Code copied to clipboard');
+                alert('Code copied to clipboard');
             })
             .catch(err => {
                 console.error('Failed to copy code: ', err);

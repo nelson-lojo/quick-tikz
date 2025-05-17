@@ -1,3 +1,4 @@
+const DEBUG = false;
 const indent = (s: string, indentString = "  ") => s.replace(/^/gm, indentString);
 
 const COLORS = [
@@ -167,6 +168,7 @@ export class Figure {
     );
   }
   compose(other: Figure, heirarchical: boolean = true): Figure {
+    console.log("combining", heirarchical, this, other);
     if (heirarchical) {
       other = new Figure(other.elements, other.attributes, false);
       if (other.elements.length == 1) {
@@ -232,7 +234,7 @@ export class Figure {
 
 // function parses the tikz code and returns a Figure object
 export function parseTikzCode(code: string): Figure {
-  console.log(`Parsing \n${code}`)
+  if (DEBUG) console.log(`Parsing \n${code}`)
   const lines = code
     .split("\n")
     .map((l) => l.trim())
@@ -281,22 +283,22 @@ export function parseTikzCode(code: string): Figure {
       tmpFig = new Figure([], attributes, false);
       figChain.at(-1)?.elements.push(tmpFig); //TODO
       figChain.push(tmpFig);
-      console.log("Entering scope");
+      if (DEBUG) console.log("Entering scope");
     } else if (line.includes("\\end{scope}")) {
       figChain.pop();
       if (figChain.length < 1) {
         throw Error("Ran out of figure parents!!!");
       }
-      console.log("Leaving scope");
+      if (DEBUG) console.log("Leaving scope");
     } else {
       figChain.at(-1)?.elements.push(new FigElement(command, attributes, body));
-      console.log(`Adding ${command}: ${body}`)
+      if (DEBUG) console.log(`Adding ${command}: ${body}`)
     }
   });
 
   if (figChain.length !== 1) {
     throw Error("Figure inheritance not completed!");
   }
-  console.log("Parsed:", figChain[0]);
+  if (DEBUG) console.log("Parsed:", figChain[0]);
   return figChain[0];
 }

@@ -1,3 +1,4 @@
+import { exportCode } from "@/lib/export";
 import { sendToQuickLaTeX } from "@/lib/quicklatex";
 import { useEffect, useState } from "react";
 

@@ -7,6 +7,7 @@ import {ReactElement, useEffect, useState, useRef, useCallback} from "react";
 import AceEditor from "react-ace";
 import { useAuth } from "@/contexts/AuthContext";
 import Modal from "@/components/Modal";
+import { exportCode } from "@/lib/export";
 
 type Snapshot = {
     code: string;
@@ -62,9 +63,7 @@ function SnapshotView({snapshot, load, decompose, explore, include, onContextMen
 export default function Home() {
     const { user, signOut } = useAuth();
     const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
-    // const [currentSnapshot, setCurrentSnapshot] = useState<Snapshot | undefined>(undefined);
     const [decomposing, setDecomposing] = useState<number>(-1);
-    const [exploring, setExploring] = useState<ReactElement>();
     const [renderedCode, setRenderedCode] = useState('');
     const [editorCode, setEditorCode] = useState('');
     const [renderTimeout, setRenderTimeout] = useState<NodeJS.Timeout>();
@@ -115,7 +114,11 @@ export default function Home() {
     function loadCode(code: string) {
         setEditorCode(code);
         setDecomposing(-1);
-        setExploring(undefined);
+    }
+
+    function includeCode(snapshot: Snapshot) {
+        loadCode(parseTikzCode(editorCode).compose(snapshot.figure, true).toString());
+        setModalContent(null);
     }
 
     const explore = useCallback((snapshot: Snapshot): void => {
@@ -138,10 +141,7 @@ export default function Home() {
                     }}
                     decompose={() => {}} // TODO: no-op
                     explore={() => {}} // Disable recursive exploration
-                    include={() => {
-                        loadCode(parseTikzCode(editorCode).compose(subshot.figure, true).toString());
-                        setModalContent(null);
-                    }}
+                    include={() => includeCode(subshot)}
                     onContextMenu={e => {
                         e.preventDefault();
                         setPopup({ idx, x: e.clientX, y: e.clientY });
@@ -175,13 +175,8 @@ export default function Home() {
                         setModalContent(null);
                     }}
                     decompose={() => {}} // no-op
-                    explore={() => {
-                        explore(subshot);
-                    }}
-                    include={() => {
-                        loadCode(editorCode + "\n" + subshot.code);
-                        setModalContent(null);
-                    }}
+                    explore={() => explore(subshot)}
+                    include={() => includeCode(subshot)}
                     onContextMenu={e => {
                         e.preventDefault();
                         setPopup({ idx, x: e.clientX, y: e.clientY });
@@ -236,6 +231,7 @@ export default function Home() {
                 </div>
             </header>
             <main className="flex-1 flex gap-2 p-2 overflow-hidden">
+                {/* The Editor + Preview side */}
                 <div className="w-2/3 flex flex-col h-full min-h-0 relative overflow-hidden border-r">
                     <div className="flex-1 min-h-0 w-full border-b">
                         <AceEditor
@@ -254,6 +250,7 @@ export default function Home() {
                         />
                     </div>
                 </div>
+                {/* The Snapshots side */}
                 <div className="w-1/3 border-1 overflow-hidden flex flex-col h-full">
                     <div className="h-full overflow-y-auto p-2">
                         <div className="grid grid-cols-3 gap-2">
@@ -313,8 +310,7 @@ export default function Home() {
                                         className="block w-full text-left px-2 py-1 hover:bg-gray-200"
                                         onClick={() => {
                                             const snapshot = snapshots[popup.idx];
-                                            loadCode(editorCode + "\n" + snapshot.code);
-                                            setPopup(null);
+                                            includeCode(snapshot);
                                         }}
                                     >
                                         Include
