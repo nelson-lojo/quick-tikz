@@ -1,7 +1,5 @@
 import { sendToQuickLaTeX } from "@/lib/quicklatex";
 import { useEffect, useState } from "react";
-import { Figure, parseTikzCode } from "@/lib/figures";
-
 
 export default function Preview({code, save}: {
     code: string | undefined,

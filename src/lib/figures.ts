@@ -1,55 +1,63 @@
-const indent = (s: string, indentString = '  ') => s.replace(/^/gm, indentString);
+const indent = (s: string, indentString = "  ") => s.replace(/^/gm, indentString);
 
 const COLORS = [
-    "black",
-    "blue",
-    "brown",
-    "cyan",
-    "darkgray",
-    "gray",
-    "green",
-    "lightgray",
-    "lime",
-    "magenta",
-    "olive",
-    "orange",
-    "pink",
-    "purple",
-    "red",
-    "teal",
-    "violet",
-    "white",
-    "yellow"
+  "black",
+  "blue",
+  "brown",
+  "cyan",
+  "darkgray",
+  "gray",
+  "green",
+  "lightgray",
+  "lime",
+  "magenta",
+  "olive",
+  "orange",
+  "pink",
+  "purple",
+  "red",
+  "teal",
+  "violet",
+  "white",
+  "yellow",
 ];
 
 const VARIABLE_ATTRIBUTES = {
-    "line width": ["0.1pt", "0.2pt", "0.4pt", "0.6pt", "0.8pt", "1pt", "1.2pt", "1.6pt", "2pt"],
-    _lineStyle: [
-        "solid",
-        "dotted",
-        "densely dotted",
-        "loosely dotted",
-        "dashed",
-        "densely dashed",
-        "loosely dashed",
-        "dashdotted",
-        "densely dashdotted",
-        "loosely dashdotted",
-        "dashdotdotted",
-        "densely dashdotdotted",
-        "loosely dashdotdotted"
-    ],
-    _lineWidth: ["ultra thin", "very thin", "thin", "semi thick", "thick", "very thick", "ultra thick"],
-    _color: COLORS,
-    color: COLORS,
-    "inner color": COLORS,
-    "outer color": COLORS,
-    "top color": COLORS,
-    "bottom color": COLORS,
-    "left color": COLORS,
-    "right color": COLORS,
-    "fill": COLORS,
-    "draw": COLORS,
+  "line width": ["0.1pt", "0.2pt", "0.4pt", "0.6pt", "0.8pt", "1pt", "1.2pt", "1.6pt", "2pt"],
+  _lineStyle: [
+    "solid",
+    "dotted",
+    "densely dotted",
+    "loosely dotted",
+    "dashed",
+    "densely dashed",
+    "loosely dashed",
+    "dashdotted",
+    "densely dashdotted",
+    "loosely dashdotted",
+    "dashdotdotted",
+    "densely dashdotdotted",
+    "loosely dashdotdotted",
+  ],
+  _lineWidth: [
+    "ultra thin",
+    "very thin",
+    "thin",
+    "semi thick",
+    "thick",
+    "very thick",
+    "ultra thick",
+  ],
+  _color: COLORS,
+  color: COLORS,
+  "inner color": COLORS,
+  "outer color": COLORS,
+  "top color": COLORS,
+  "bottom color": COLORS,
+  "left color": COLORS,
+  "right color": COLORS,
+  fill: COLORS,
+  draw: COLORS,
 };
 
 // type ExplorableCmd = keyof typeof VARIABLE_ATTRIBUTES;
@@ -66,7 +74,7 @@ class FigAttribute {
     return `{name: ${this.name}, value: ${this.value}}`;
   }
   toString(): string {
-    return this.name.charAt(0) == "_" ? `${this.value}` : `${this.name}=${this.value}`;
+    return (this.name == "" || this.name.charAt(0) == "_") ? `${this.value}` : `${this.name}=${this.value}`;
   }
   clone(): FigAttribute {
     return new FigAttribute(this.name, this.value);
@@ -108,10 +116,12 @@ class FigElement {
     if (this.attributes.length === 0) {
       return `\\${this.command} ${this.body};`;
     }
-    return `\\${this.command}[${this.attributes.join(", ")}] ${this.body};`;
+    return `\\${this.command}[${this.attributes.join(", ")}] ${this.body.slice(0, this.body.at(-1) == ";" ? this.body.length-1: this.body.length)};`;
   }
   debugString(): string {
-    return `{command: ${this.command}, attributes: [${this.attributes.map(attr => attr.debugString()).join(", ")}], body: ${this.body}}`;
+    return `{command: ${this.command}, attributes: [${this.attributes
+      .map((attr) => attr.debugString())
+      .join(", ")}], body: ${this.body}}`;
   }
   clone(): FigElement {
     return new FigElement(
@@ -123,23 +133,23 @@ class FigElement {
 }
 
 export class Figure {
-    elements: (FigElement | Figure)[];
-    attributes: FigAttribute[];
-    isRoot: boolean;
+  elements: (FigElement | Figure)[];
+  attributes: FigAttribute[];
+  isRoot: boolean;
 
-    constructor(elements: (FigElement | Figure)[], attributes: FigAttribute[], isRoot: boolean) {
-        this.elements = elements;
-        this.attributes = attributes;
-        this.isRoot = isRoot;
-    }
+  constructor(elements: (FigElement | Figure)[], attributes: FigAttribute[], isRoot: boolean) {
+    this.elements = elements;
+    this.attributes = attributes;
+    this.isRoot = isRoot;
+  }
 
-    debugString(): string {
-        return `{elements: [${this.elements.map(elem => 
-      elem instanceof Figure ? elem.debugString() : elem.debugString()
-    ).join(", ")}], attributes: [${this.attributes.map(attr => attr.debugString()).join(", ")}], isRoot: ${this.isRoot}}`;
-    }
-
-    
+  debugString(): string {
+    return `{elements: [${this.elements
+      .map((elem) => (elem instanceof Figure ? elem.debugString() : elem.debugString()))
+      .join(", ")}], attributes: [${this.attributes
+      .map((attr) => attr.debugString())
+      .join(", ")}], isRoot: ${this.isRoot}}`;
+  }
 
   toString(): string {
     const attributeStr = this.attributes.length > 0 ? `[${this.attributes.join(", ")}]` : "";
@@ -149,87 +159,6 @@ export class Figure {
     return `\\begin{scope}${attributeStr}\n${indent(this.elements.join("\n"))}\n\\end{scope}`;
   }
 
-
-
-
-      //   if (this.isRoot) {
-  //     return `${elementsStr}`;
-  //   }
-  //   return `${indent}\\begin{scope}${attributeStr}\n${elementsStr}\n${indent}\\end{scope}`;
-
-  // toString(): string {
-  //   if (this.elements.length === 0) {
-  //     return "";
-  //   }
-  //   return this._toStringWithIndent(0);
-  // }
-
-
-  // _toStringWithIndent(indentLevel: number): string {
-  //   const indent = "\t".repeat(indentLevel);
-  //   const childIndent = "\t".repeat(indentLevel + 1);
-
-  //   // const envName = this.isRoot ? "tikzpicture" : "scope";
-  //   const attributeStr = this.attributes.length > 0 ? `[${this.attributes.join(", ")}]` : "";
-
-  //   const elementsStr = this.elements.map(el => {
-  //     if (el instanceof Figure) {
-  //       return el._toStringWithIndent(indentLevel + 1);
-  //     } else {
-  //       return `${childIndent}${el.toString()}`;
-  //     }
-  //   }).join("\n");
-  //   // dont add the tikzpicture environment if isRoot is true
-  //   if (this.isRoot) {
-  //     return `${elementsStr}`;
-  //   }
-  //   return `${indent}\\begin{scope}${attributeStr}\n${elementsStr}\n${indent}\\end{scope}`;
-  // }
-
-      // add the tikzpicture environment if isRoot is false
-// //toString(): string {
-//     if (this.isRoot) return this.elements.join("\n");
-
-//     return `\\begin{scope}[${this.attributes.join(", ")}]
-// ${this.elements.join("\n")}
-// \\end{scope}`;
-//   }
-  
-
-  // toEditorCode is like toString but without the tikzpicture environment if isRoot is true
-  // toEditorCode(): string {
-  //   if (this.elements.length === 0) {
-  //     return "";
-  //   }
-  //   if (this.isRoot) {
-  //     return this.elements
-  //       .map((el) => {
-  //         if (el instanceof Figure) {
-  //           return el._toEditorCodeWithIndent(0);
-  //         } else {
-  //           return el.toString();
-  //         }
-  //       }
-  //       )
-  //       .join("\n");
-  //   }
-  //   return this._toStringWithIndent(0);
-  // }
-  // _toEditorCodeWithIndent(indentLevel: number): string {
-  //   const indent = "\t".repeat(indentLevel);
-  //   const childIndent = "\t".repeat(indentLevel + 1);
-  //   const attributeStr = this.attributes.length > 0 ? `[${this.attributes.join(", ")}]` : "";
-  //   const elementsStr = this.elements.map((el) => {
-  //     if (el instanceof Figure) {
-  //       return el._toEditorCodeWithIndent(indentLevel + 1);
-  //     } else {
-  //       return `${childIndent}${el.toString()}`;
-  //     }
-  //   }
-  //   ).join("\n");
-  //   return `${indent}\\begin{scope}${attributeStr}\n${elementsStr}\n${indent}\\end{scope}`;
-  // }
-  
   clone(): Figure {
     return new Figure(
       this.elements.map((e) => e.clone()),
@@ -237,7 +166,7 @@ export class Figure {
       this.isRoot
     );
   }
-  compose(other: Figure, heirarchical?: boolean): Figure {
+  compose(other: Figure, heirarchical: boolean = true): Figure {
     if (heirarchical) {
       other = new Figure(other.elements, other.attributes, false);
       if (other.elements.length == 1) {
@@ -246,24 +175,23 @@ export class Figure {
       return new Figure([...this.elements, other], [], true);
     }
 
-        return new Figure(
-            [...this.elements, ...other.elements],
-            [...this.attributes, ...other.attributes],
-            true
-        );
-    }
+    return new Figure(
+      [...this.elements, ...other.elements],
+      [...this.attributes, ...other.attributes],
+      true
+    );
+  }
 
-    decompose(): Figure[] {
-        return this.elements.map(
-            (el) =>
-                el instanceof Figure
-                    ? new Figure(el.elements, el.attributes, true)
-                    : new Figure([el], [], true)
-        );
-    }
+  decompose(): Figure[] {
+    return this.elements.map((el) =>
+      el instanceof Figure
+        ? new Figure(el.elements, el.attributes, true)
+        : new Figure([el], [], true)
+    );
+  }
 
   explore(breadth: number = 3, attributesToVary: number = 2): Figure[] {
-    type Transform = ((f: Figure) => Figure[]);
+    type Transform = (f: Figure) => Figure[];
     const allVariations: Transform[] = this.elements.flatMap((el, elIndex) =>
       el.attributes
         .filter((attr) => attr.isExplorable())
@@ -297,17 +225,18 @@ export class Figure {
     return figures;
   }
 
-    static combine(figures: Figure[]): Figure {
-        return figures.reduce((acc, fig) => acc.compose(fig), new Figure([], [], true));
-    }
+  static combine(figures: Figure[]): Figure {
+    return figures.reduce((acc, fig) => acc.compose(fig), new Figure([], [], true));
+  }
 }
 
 // function parses the tikz code and returns a Figure object
 export function parseTikzCode(code: string): Figure {
-    const lines = code
-        .split(";") // should be ; ?
-        .map((l) => l.trim())
-        .filter((l) => l.length > 0);
+  console.log(`Parsing \n${code}`)
+  const lines = code
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
 
   let figChain = [new Figure([], [], true)];
   let tmpFig: Figure;
@@ -329,41 +258,45 @@ export function parseTikzCode(code: string): Figure {
     }
     const body = bodyString;
 
-        const attributes: FigAttribute[] = attrParts.map((part) => {
-            if (part.includes("=")) {
-                const [rawName, rawValue] = part.split(/=(.+)/);
-                const name = rawName.trim();
-                const value = rawValue.trim();
-                return new FigAttribute(name, value);
-            }
+    const attributes: FigAttribute[] = attrParts.map((part) => {
+      if (part.includes("=")) {
+        const [rawName, rawValue] = part.split(/=(.+)/);
+        const name = rawName.trim();
+        const value = rawValue.trim();
+        return new FigAttribute(name, value);
+      }
 
-            part = part.trim();
+      part = part.trim();
 
       const attrVariants = Object.entries(VARIABLE_ATTRIBUTES).find(([fieldName, values]) =>
         values.includes(part)
       );
       if (attrVariants === undefined) return new FigAttribute("", part);
 
-            const name: string = attrVariants[0];
-            return new FigAttribute(name, part);
-        });
+      const name: string = attrVariants[0];
+      return new FigAttribute(name, part);
+    });
 
     if (line.includes("\\begin{scope}")) {
       tmpFig = new Figure([], attributes, false);
       figChain.at(-1)?.elements.push(tmpFig); //TODO
       figChain.push(tmpFig);
+      console.log("Entering scope");
     } else if (line.includes("\\end{scope}")) {
       figChain.pop();
       if (figChain.length < 1) {
         throw Error("Ran out of figure parents!!!");
       }
+      console.log("Leaving scope");
     } else {
       figChain.at(-1)?.elements.push(new FigElement(command, attributes, body));
+      console.log(`Adding ${command}: ${body}`)
     }
   });
 
-    if (figChain.length !== 1) {
-        throw Error("Figure inheritance not completed!");
-    }
-    return figChain[0];
+  if (figChain.length !== 1) {
+    throw Error("Figure inheritance not completed!");
+  }
+  console.log("Parsed:", figChain[0]);
+  return figChain[0];
 }

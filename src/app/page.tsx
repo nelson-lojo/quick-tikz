@@ -68,7 +68,6 @@ export default function Home() {
     const [renderedCode, setRenderedCode] = useState('');
     const [editorCode, setEditorCode] = useState('');
     const [renderTimeout, setRenderTimeout] = useState<NodeJS.Timeout>();
-    const editorFigure = parseTikzCode(editorCode);
     // Popup state
     const [popup, setPopup] = useState<{ idx: number, x: number, y: number } | null>(null);
     const popupRef = useRef<HTMLDivElement>(null);
@@ -140,7 +139,7 @@ export default function Home() {
                     decompose={() => {}} // TODO: no-op
                     explore={() => {}} // Disable recursive exploration
                     include={() => {
-                        loadCode(editorFigure.compose(subshot.figure).toString());
+                        loadCode(parseTikzCode(editorCode).compose(subshot.figure, true).toString());
                         setModalContent(null);
                     }}
                     onContextMenu={e => {
@@ -155,7 +154,7 @@ export default function Home() {
             title: "Explored Variations",
             content: subshotsContainer
         });
-    }, [editorFigure, loadCode]);
+    }, [editorCode, loadCode]);
 
     const decompose = useCallback((snapshot: Snapshot): void => {
         console.log("decomposing ...")
